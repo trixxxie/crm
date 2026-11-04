@@ -21,10 +21,8 @@
 </head>
 <body class="bg-white text-zinc-800 h-screen overflow-hidden antialiased text-[14px]">
 
-    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
-
     <!-- ЭКРАН ЛОГИНА -->
-    <div id="login-screen" class="flex h-full w-full bg-zinc-50 bg-grid absolute inset-0 z-40 transition-opacity duration-300">
+    <div id="login-screen" class="flex h-full w-full bg-zinc-50 bg-grid absolute inset-0 z-40">
         <div class="m-auto w-full max-w-[360px] bg-white p-8 border border-zinc-200 shadow-sm rounded-xl">
             <div class="mb-8">
                 <h2 class="text-xl font-semibold text-zinc-900 mb-1">Вход в BoxTracker</h2>
@@ -44,8 +42,8 @@
         </div>
     </div>
 
-    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
-    <div id="main-app" class="h-full w-full flex hidden opacity-0 transition-opacity duration-300">
+    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ (Убрана прозрачность opacity-0) -->
+    <div id="main-app" class="h-full w-full flex hidden">
         <!-- БОКОВОЕ МЕНЮ -->
         <aside class="w-[240px] bg-[#f7f7f9] border-r border-zinc-200 flex flex-col shrink-0">
             <div class="h-14 flex items-center px-5 border-b border-zinc-200/50 mb-4">
@@ -230,7 +228,6 @@
                         </select>
                     </div>
                 </div>
-                <!-- Доступы скрыты для краткости, даем по умолчанию -->
                 <div class="pt-6 flex gap-3">
                     <button type="button" onclick="closeModal('add-user-modal')" class="flex-1 px-4 py-2 border border-zinc-200 rounded-lg">Отмена</button>
                     <button type="submit" class="flex-1 px-4 py-2 bg-zinc-900 text-white rounded-lg">Создать</button>
@@ -260,7 +257,6 @@
 
     <!-- МОДАЛЬНОЕ ОКНО: ЗАКАЗ -->
     <div id="order-modal" class="fixed inset-0 bg-zinc-900/40 z-50 hidden flex items-center justify-center backdrop-blur-sm">
-        <!-- Код заказа аналогичен прошлой версии, только без изменений -->
         <div class="bg-white rounded-xl w-full max-w-[400px] overflow-hidden transform scale-95 transition-transform" id="modal-content">
             <div class="px-6 py-4 border-b border-zinc-100 flex justify-between items-center">
                 <h3 class="font-medium text-[15px]" id="order-modal-title">Добавить заказ</h3>
@@ -295,7 +291,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getDatabase, ref, set, get, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+        import { getDatabase, ref, set, get, onValue, remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
         // ==========================================
         // ⚠️ ВАШ КОНФИГ FIREBASE
@@ -331,7 +327,6 @@
         monthPicker.value = getMoscowDateStr().toISOString().substring(0, 7); // YYYY-MM
         monthPicker.addEventListener('change', () => window.calculateDashboard());
 
-        window.showToast = function(msg, type = 'success') { /* Сокращено */ alert(msg); }
         window.openModal = function(id) { document.getElementById(id).classList.remove('hidden'); }
         window.closeModal = function(id) { document.getElementById(id).classList.add('hidden'); }
         window.logout = function() { signOut(auth); }
@@ -341,6 +336,7 @@
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active', 'bg-zinc-200/50'));
             document.getElementById(`nav-${tabId}`).classList.add('active');
+            document.getElementById('page-title').textContent = document.getElementById(`nav-${tabId}`).innerText.trim();
         }
 
         setInterval(() => {
@@ -370,6 +366,8 @@
                 
                 document.getElementById('user-name-display').textContent = currentUser.name;
                 document.getElementById('user-role-display').textContent = currentUser.role === 'admin' ? 'Администратор' : 'Сотрудник';
+                
+                // Прячем экран логина и показываем интерфейс
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
                 
@@ -412,7 +410,7 @@
                 tbody.innerHTML = '';
                 snapshot.forEach(child => {
                     const u = child.val();
-                    tbody.innerHTML += `<tr><td class="py-3 px-5">${u.name}</td><td class="py-3 px-5">${u.email}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="remove(ref(db, 'artifacts/${appId}/public/data/users/${child.key}'))" class="text-red-500">Удалить</button></td></tr>`;
+                    tbody.innerHTML += `<tr><td class="py-3 px-5">${u.name}</td><td class="py-3 px-5">${u.email}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="remove(ref(db, 'artifacts/${appId}/public/data/users/${child.key}'))" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
                 });
             });
 
@@ -421,7 +419,7 @@
                 grid.innerHTML = '';
                 snapshot.forEach(child => {
                     const item = child.val();
-                    grid.innerHTML += `<div class="p-4 rounded-xl border border-zinc-200 bg-white flex justify-between items-center"><p class="font-medium text-zinc-900">${item.name}</p><div class="text-lg font-semibold">${item.quantity} шт.</div></div>`;
+                    grid.innerHTML += `<div class="p-4 rounded-xl border border-zinc-200 bg-white flex justify-between items-center hover:border-zinc-300 transition-colors"><p class="font-medium text-zinc-900">${item.name}</p><div class="text-lg font-semibold text-zinc-800">${item.quantity} шт.</div></div>`;
                 });
             });
         }
@@ -456,7 +454,7 @@
             ordersDB.forEach(order => {
                 const d = getMoscowDateStr(new Date(order.date));
                 const dateStr = d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-                tbody.innerHTML += `<tr class="hover:bg-zinc-50"><td class="py-3 px-5 font-mono">${order.barcode}</td><td class="py-3 px-5">${order.size}</td><td class="py-3 px-5">${order.price} ₽</td><td class="py-3 px-5 text-zinc-600">${order.authorName}</td><td class="py-3 px-5 text-zinc-400">${dateStr}</td><td class="py-3 px-5 text-right"><button onclick="window.removeOrderById('${order.id}')" class="text-red-500">Удалить</button></td></tr>`;
+                tbody.innerHTML += `<tr class="hover:bg-zinc-50"><td class="py-3 px-5 font-mono text-zinc-800">${order.barcode}</td><td class="py-3 px-5 text-zinc-700">${order.size}</td><td class="py-3 px-5 font-medium text-zinc-900">${order.price} ₽</td><td class="py-3 px-5 text-zinc-600">${order.authorName}</td><td class="py-3 px-5 text-zinc-400 text-[12px]">${dateStr}</td><td class="py-3 px-5 text-right"><button onclick="window.removeOrderById('${order.id}')" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
             });
         }
 
@@ -474,7 +472,7 @@
                 closeModal('add-user-modal');
                 e.target.reset();
                 alert('Сотрудник успешно добавлен! Он может использовать этот Email для входа.');
-            } catch (err) { alert('Ошибка! Возможно Email уже занят.'); }
+            } catch (err) { alert('Ошибка! Возможно Email уже занят или слишком простой пароль.'); }
         });
 
         // ЗАКАЗЫ (РУЧНОЕ УПРАВЛЕНИЕ)
@@ -490,7 +488,7 @@
             await set(getDbRef(`orders/${Date.now()}`), orderData);
             closeModal('order-modal');
         });
-        window.removeOrderById = async function(id) { if (confirm('Удалить?')) await remove(getDbRef(`orders/${id}`)); };
+        window.removeOrderById = async function(id) { if (confirm('Точно удалить заказ?')) await remove(getDbRef(`orders/${id}`)); };
     </script>
 </body>
 </html>
