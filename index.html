@@ -55,7 +55,7 @@
                 </button>
             </form>
             <div class="mt-6 pt-6 border-t border-zinc-100 text-center text-[12px] text-zinc-400">
-                Первый вход: <span class="font-mono text-zinc-600"></span>
+                Первый вход: <span class="font-mono text-zinc-600">admin / admin</span>
             </div>
         </div>
     </div>
@@ -497,7 +497,7 @@
             e.preventDefault();
             const login = document.getElementById('login-username').value.trim();
             const pass = document.getElementById('login-password').value.trim();
-            const email = login + "@boxtracker.crm";
+            const email = login + "@boxtracker.com";
 
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
