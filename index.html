@@ -499,24 +499,27 @@
             const pass = document.getElementById('login-password').value.trim();
             const email = login + "@boxtracker.com";
 
-                        try {
-                await signInWithEmailAndPassword(auth, email, pass);
-            } catch (error) {
-                console.log('ОШИБКА ВХОДА:', error.code);
-                if (login === 'admin' && pass === 'admin') {
+               try {
+    await signInWithEmailAndPassword(auth, email, pass);
+} catch (error) {
+    console.log('ОШИБКА ВХОДА:', error.code);
+    if (login === 'admin' && pass === 'admin123456') {
+        try {
+            const cred = await createUserWithEmailAndPassword(auth, email, pass);
+            await set(getDbRef(`users/${cred.user.uid}`), {
+                name: "Суперадмин", login: "admin", role: "admin", canEditAll: true,
+                pages: { dashboard: true, orders: true, inventory: true, users: true }
+            });
+            window.showToast('База инициализирована!', 'success');
+        } catch(e2) {
+            console.log('ОШИБКА СОЗДАНИЯ:', e2.code);
+            window.showToast('Не удалось создать админа: ' + e2.code, 'error');
+        }
+    } else {
+        window.showToast('Неверный логин или пароль', 'error');
+    }
+}
 
-                    try {
-                        const cred = await createUserWithEmailAndPassword(auth, email, pass);
-                        await set(getDbRef(`users/${cred.user.uid}`), {
-                            name: "Суперадмин", login: "admin", role: "admin", canEditAll: true,
-                            pages: { dashboard: true, orders: true, inventory: true, users: true }
-                        });
-                        window.showToast('База инициализирована!');
-                    } catch(e2) { window.showToast('Неверный логин или пароль', 'error'); }
-                } else {
-                    window.showToast('Неверный логин или пароль', 'error');
-                }
-            }
         });
 
         // Слушатели базы данных (Realtime Database)
