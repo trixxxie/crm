@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Box Tracker CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        // Используем строгую палитру Zinc и черный для акцентов
+                        brand: { 50: '#f4f4f5', 100: '#e4e4e7', 900: '#18181b' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-feature-settings: "cv02", "cv03", "cv04", "cv11"; }
+        .fade-in { animation: fadeIn 0.2s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        /* Тонкий, незаметный скроллбар */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d4d4d8; }
+        
+        /* Стили для активного пункта меню */
+        .nav-btn.active { background-color: #e4e4e7; color: #18181b; font-weight: 500; }
+        
+        /* Сетка на фоне для логина (придает текстуру) */
+        .bg-grid { background-size: 40px 40px; background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px); }
+    </style>
+</head>
+<body class="bg-white text-zinc-800 h-screen overflow-hidden antialiased text-[14px]">
+
+    <!-- УВЕДОМЛЕНИЯ -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ЭКРАН ЛОГИНА -->
+    <div id="login-screen" class="flex h-full w-full bg-zinc-50 bg-grid absolute inset-0 z-40 transition-opacity duration-300">
+        <div class="m-auto w-full max-w-[360px] bg-white p-8 border border-zinc-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-xl">
+            <div class="mb-8">
+                <h2 class="text-xl font-semibold tracking-tight text-zinc-900 mb-1">Вход в BoxTracker</h2>
+                <p class="text-zinc-500 text-[13px]">Введите учетные данные для продолжения</p>
+            </div>
+            
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-[13px] font-medium text-zinc-700 mb-1.5">Логин</label>
+                    <input type="text" id="login-username" required class="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none transition-all placeholder-zinc-400" placeholder="admin">
+                </div>
+                <div>
+                    <label class="block text-[13px] font-medium text-zinc-700 mb-1.5">Пароль</label>
+                    <input type="password" id="login-password" required class="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none transition-all placeholder-zinc-400" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 px-4 rounded-lg font-medium transition-colors mt-2">
+                    Войти в систему
+                </button>
+            </form>
+            <div class="mt-6 pt-6 border-t border-zinc-100 text-center text-[12px] text-zinc-400">
+                Демо-вход: <span class="font-mono text-zinc-600">admin / admin</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
+    <div id="main-app" class="h-full w-full flex hidden opacity-0 transition-opacity duration-300">
+        
+        <!-- БОКОВОЕ МЕНЮ -->
+        <aside class="w-[240px] bg-[#f7f7f9] border-r border-zinc-200 flex flex-col shrink-0">
+            <!-- Логотип -->
+            <div class="h-14 flex items-center px-5 border-b border-zinc-200/50 mb-4">
+                <div class="flex items-center gap-2 text-zinc-900">
+                    <i class="ph-bold ph-package text-lg"></i>
+                    <span class="font-semibold tracking-tight">BoxTracker</span>
+                </div>
+            </div>
+            
+            <!-- Навигация -->
+            <nav class="flex-1 px-3 space-y-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-zinc-600 hover:bg-zinc-200/50 transition-colors text-[13px]">
+                    <i class="ph ph-squares-four text-lg"></i> Дашборд
+                </button>
+                <button onclick="switchTab('orders')" id="nav-orders" class="nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-zinc-600 hover:bg-zinc-200/50 transition-colors text-[13px]">
+                    <i class="ph ph-list-dashes text-lg"></i> Заказы
+                </button>
+                <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-zinc-600 hover:bg-zinc-200/50 transition-colors text-[13px]">
+                    <i class="ph ph-stack text-lg"></i> ТМЦ и Остатки
+                </button>
+                
+                <div id="nav-admin-title" class="pt-6 pb-1">
+                    <p class="px-3 text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Администрирование</p>
+                </div>
+                <button onclick="switchTab('users')" id="nav-users" class="nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-zinc-600 hover:bg-zinc-200/50 transition-colors text-[13px]">
+                    <i class="ph ph-users text-lg"></i> Сотрудники
+                </button>
+            </nav>
+
+            <!-- Профиль -->
+            <div class="p-4 border-t border-zinc-200/50">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-8 h-8 rounded border border-zinc-200 bg-white flex items-center justify-center text-zinc-800 font-medium text-xs" id="user-avatar">А</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[13px] font-medium text-zinc-900 truncate" id="user-name-display">Админ</p>
+                        <p class="text-[11px] text-zinc-500 truncate" id="user-role-display">Владелец</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-3 py-1.5 border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 rounded-md transition-colors text-[12px] font-medium">
+                    Выйти
+                </button>
+            </div>
+        </aside>
+
+        <!-- ПРАВАЯ ЧАСТЬ (КОНТЕНТ) -->
+        <main class="flex-1 flex flex-col bg-white relative min-w-0">
+            <!-- Верхняя панель -->
+            <header class="h-14 border-b border-zinc-200 flex items-center justify-between px-8 shrink-0 bg-white">
+                <h1 id="page-title" class="text-[15px] font-semibold tracking-tight text-zinc-900">Дашборд</h1>
+                <div class="flex items-center gap-2 text-zinc-500 text-[13px]">
+                    <i class="ph ph-clock"></i> <span id="current-time">00:00</span> МСК
+                </div>
+            </header>
+
+            <!-- Контент -->
+            <div id="content-area" class="flex-1 overflow-y-auto p-8">
+                <div class="max-w-6xl mx-auto">
+                    
+                    <!-- Вкладка: ДАШБОРД -->
+                    <div id="tab-dashboard" class="tab-content fade-in">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div class="p-5 rounded-xl border border-zinc-200 bg-white flex flex-col justify-between h-32">
+                                <div class="flex items-center justify-between text-zinc-500 mb-2">
+                                    <span class="text-[13px] font-medium">Коробок сегодня</span>
+                                    <i class="ph ph-package text-lg"></i>
+                                </div>
+                                <p class="text-3xl font-semibold tracking-tight text-zinc-900">42</p>
+                            </div>
+                            <div class="p-5 rounded-xl border border-zinc-200 bg-white flex flex-col justify-between h-32">
+                                <div class="flex items-center justify-between text-zinc-500 mb-2">
+                                    <span class="text-[13px] font-medium">Выручка сегодня</span>
+                                    <i class="ph ph-coins text-lg"></i>
+                                </div>
+                                <p class="text-3xl font-semibold tracking-tight text-zinc-900">5 400 <span class="text-xl text-zinc-400 font-normal">₽</span></p>
+                            </div>
+                            <div class="p-5 rounded-xl border border-zinc-200 bg-white flex flex-col justify-between h-32">
+                                <div class="flex items-center justify-between text-zinc-500 mb-2">
+                                    <span class="text-[13px] font-medium">Чистая прибыль</span>
+                                    <i class="ph ph-trend-up text-lg"></i>
+                                </div>
+                                <p class="text-3xl font-semibold tracking-tight text-zinc-900">3 150 <span class="text-xl text-zinc-400 font-normal">₽</span></p>
+                            </div>
+                        </div>
+                        
+                        <div class="rounded-xl border border-zinc-200 bg-white p-6">
+                            <h3 class="text-[14px] font-medium text-zinc-900 mb-6">Статистика по размерам (за месяц)</h3>
+                            <div class="h-48 flex items-end gap-2 border-b border-zinc-100 pb-0 relative">
+                                <!-- Строгий график в виде линий -->
+                                <div class="w-full flex justify-between items-end h-full">
+                                    <div class="w-[8%] bg-zinc-200 hover:bg-zinc-300 transition-colors rounded-t-sm relative group h-full">
+                                        <div class="absolute -top-7 left-1/2 -translate-x-1/2 bg-zinc-800 text-white text-[11px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">S: 120</div>
+                                    </div>
+                                    <div class="w-[8%] bg-zinc-800 hover:bg-zinc-700 transition-colors rounded-t-sm h-[75%] relative group">
+                                        <div class="absolute -top-7 left-1/2 -translate-x-1/2 bg-zinc-800 text-white text-[11px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">M: 90</div>
+                                    </div>
+                                    <div class="w-[8%] bg-zinc-300 hover:bg-zinc-400 transition-colors rounded-t-sm h-[40%] relative group">
+                                         <div class="absolute -top-7 left-1/2 -translate-x-1/2 bg-zinc-800 text-white text-[11px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">L: 45</div>
+                                    </div>
+                                    <div class="w-[8%] bg-zinc-200 hover:bg-zinc-300 transition-colors rounded-t-sm h-[20%] relative group">
+                                         <div class="absolute -top-7 left-1/2 -translate-x-1/2 bg-zinc-800 text-white text-[11px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">XL: 15</div>
+                                    </div>
+                                    <div class="w-[8%] bg-zinc-100 hover:bg-zinc-200 transition-colors rounded-t-sm h-[10%] relative group">
+                                         <div class="absolute -top-7 left-1/2 -translate-x-1/2 bg-zinc-800 text-white text-[11px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">Конверт: 8</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between mt-3 text-[12px] text-zinc-500 font-medium">
+                                <span class="w-[8%] text-center">S</span>
+                                <span class="w-[8%] text-center">M</span>
+                                <span class="w-[8%] text-center">L</span>
+                                <span class="w-[8%] text-center">XL</span>
+                                <span class="w-[8%] text-center">Конверт</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Вкладка: СОТРУДНИКИ И ДОСТУПЫ -->
+                    <div id="tab-users" class="tab-content hidden fade-in">
+                        <div class="flex justify-between items-center mb-5">
+                            <p class="text-[13px] text-zinc-500">Управление учетными записями и правами доступа</p>
+                            <button onclick="openModal('add-user-modal')" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-md text-[13px] font-medium flex items-center gap-1.5 transition-colors">
+                                <i class="ph ph-plus"></i> Создать аккаунт
+                            </button>
+                        </div>
+                        
+                        <div class="border border-zinc-200 rounded-lg overflow-hidden bg-white">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-zinc-50 text-zinc-500 text-[12px] border-b border-zinc-200">
+                                        <th class="py-3 px-5 font-medium w-1/3">Сотрудник</th>
+                                        <th class="py-3 px-5 font-medium">Логин</th>
+                                        <th class="py-3 px-5 font-medium">Роль</th>
+                                        <th class="py-3 px-5 font-medium">Доступы к разделам</th>
+                                        <th class="py-3 px-5 font-medium text-right">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body" class="text-[13px] divide-y divide-zinc-100">
+                                    <!-- Рендерится через JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Вкладка: ЗАКАЗЫ -->
+                    <div id="tab-orders" class="tab-content hidden fade-in">
+                        <div class="flex justify-between items-center mb-5">
+                             <p class="text-[13px] text-zinc-500">История расходов и добавленных штрихкодов</p>
+                             <button onclick="openOrderModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-md text-[13px] font-medium flex items-center gap-1.5 transition-colors">
+                                <i class="ph ph-plus"></i> Добавить заказ
+                            </button>
+                        </div>
+                        <div class="border border-zinc-200 rounded-lg overflow-hidden bg-white">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-zinc-50 text-zinc-500 text-[12px] border-b border-zinc-200">
+                                        <th class="py-3 px-5 font-medium">Штрихкод</th>
+                                        <th class="py-3 px-5 font-medium">Размер</th>
+                                        <th class="py-3 px-5 font-medium">Цена</th>
+                                        <th class="py-3 px-5 font-medium">Сотрудник</th>
+                                        <th class="py-3 px-5 font-medium">Дата</th>
+                                        <th class="py-3 px-5 font-medium text-right">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table-body" class="text-[13px] divide-y divide-zinc-100">
+                                    <!-- Рендерится через JS -->
+                                </tbody>
+                            </table>
+                            <div class="p-3 text-center text-[12px] text-zinc-400 bg-zinc-50 border-t border-zinc-100">
+                                Данные синхронизируются с Google Таблицей
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Вкладка: ИНВЕНТАРИЗАЦИЯ -->
+                    <div id="tab-inventory" class="tab-content hidden fade-in">
+                        <p class="text-[13px] text-zinc-500 mb-5">Текущие остатки материалов на складе</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Строгие карточки -->
+                            <div class="p-4 rounded-xl border border-zinc-200 bg-white flex justify-between items-center">
+                                <div><p class="font-medium text-zinc-900 text-[14px]">Короб XL</p><p class="text-[12px] text-zinc-400 mt-0.5">120 ₽ / шт.</p></div>
+                                <div class="text-lg font-semibold text-zinc-900">45</div>
+                            </div>
+                            <div class="p-4 rounded-xl border border-zinc-200 bg-white flex justify-between items-center">
+                                <div><p class="font-medium text-zinc-900 text-[14px]">Короб L</p><p class="text-[12px] text-zinc-400 mt-0.5">90 ₽ / шт.</p></div>
+                                <div class="text-lg font-semibold text-zinc-900">112</div>
+                            </div>
+                             <div class="p-4 rounded-xl border border-red-200 bg-red-50/30 flex justify-between items-center">
+                                <div><p class="font-medium text-red-900 text-[14px]">Стрейч (Черный)</p><p class="text-[12px] text-red-500 mt-0.5">Заканчивается</p></div>
+                                <div class="text-lg font-semibold text-red-600">2</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО -->
+    <div id="add-user-modal" class="fixed inset-0 bg-zinc-900/40 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] w-full max-w-[400px] overflow-hidden transform scale-95 transition-transform" id="modal-content">
+            <div class="px-6 py-4 border-b border-zinc-100 flex justify-between items-center">
+                <h3 class="font-medium text-[15px] text-zinc-900">Новый аккаунт</h3>
+                <button type="button" onclick="closeModal('add-user-modal')" class="text-zinc-400 hover:text-zinc-600 transition-colors"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            <form id="new-user-form" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Имя сотрудника</label>
+                    <input type="text" id="new-name" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none placeholder-zinc-300" placeholder="Иван Иванов">
+                </div>
+                <div>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Логин</label>
+                    <input type="text" id="new-login" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none placeholder-zinc-300" placeholder="ivan">
+                </div>
+                <div>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Пароль</label>
+                    <input type="text" id="new-password" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none placeholder-zinc-300" placeholder="••••••••">
+                </div>
+                <div class="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                        <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Роль</label>
+                        <select id="new-role" class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none bg-white text-[13px]">
+                            <option value="employee">Сотрудник</option>
+                            <option value="admin">Администратор</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col justify-center pt-5 gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="new-can-edit-all" class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900">
+                            <span class="text-[12px] text-zinc-600 group-hover:text-zinc-900 transition-colors" title="Может редактировать и удалять чужие заказы">Редакт. чужие заказы</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="pt-2">
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Доступ к страницам сайта</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="new-page-dashboard" class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" checked>
+                            <span class="text-[12px] text-zinc-600">Дашборд</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="new-page-orders" class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" checked>
+                            <span class="text-[12px] text-zinc-600">Заказы</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="new-page-inventory" class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" checked>
+                            <span class="text-[12px] text-zinc-600">ТМЦ</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="new-page-users" class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900">
+                            <span class="text-[12px] text-zinc-600">Сотрудники</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="pt-6 flex gap-3">
+                    <button type="button" onclick="closeModal('add-user-modal')" class="flex-1 px-4 py-2 rounded-lg border border-zinc-200 text-zinc-600 font-medium hover:bg-zinc-50 transition-colors">Отмена</button>
+                    <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors">Создать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: РЕДАКТИРОВАНИЕ ПОЛЬЗОВАТЕЛЯ -->
+    <div id="edit-user-modal" class="fixed inset-0 bg-zinc-900/40 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] w-full max-w-[400px] overflow-hidden transform scale-95 transition-transform" id="modal-content">
+            <div class="px-6 py-4 border-b border-zinc-100 flex justify-between items-center">
+                <h3 class="font-medium text-[15px] text-zinc-900">Редактировать аккаунт</h3>
+                <button type="button" onclick="closeModal('edit-user-modal')" class="text-zinc-400 hover:text-zinc-600 transition-colors"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            <form id="edit-user-form" class="p-6 space-y-4">
+                <input type="hidden" id="edit-user-id">
+                <div>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Имя сотрудника</label>
+                    <input type="text" id="edit-name" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Логин</label>
+                    <input type="text" id="edit-login" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Пароль</label>
+                    <input type="text" id="edit-password" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                        <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Роль</label>
+                        <select id="edit-role" class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none bg-white text-[13px]">
+                            <option value="employee">Сотрудник</option>
+                            <option value="admin">Администратор</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col justify-center pt-5 gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="edit-can-edit-all" class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900">
+                            <span class="text-[12px] text-zinc-600 group-hover:text-zinc-900 transition-colors" title="Может редактировать и удалять чужие заказы">Редакт. чужие заказы</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="pt-2">
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Доступ к страницам сайта</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="edit-page-dashboard" class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900">
+                            <span class="text-[12px] text-zinc-600">Дашборд</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="edit-page-orders" class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900">
+                            <span class="text-[12px] text-zinc-600">Заказы</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="edit-page-inventory" class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900">
+                            <span class="text-[12px] text-zinc-600">ТМЦ</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="edit-page-users" class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900">
+                            <span class="text-[12px] text-zinc-600">Сотрудники</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="pt-6 flex gap-3">
+                    <button type="button" onclick="closeModal('edit-user-modal')" class="flex-1 px-4 py-2 rounded-lg border border-zinc-200 text-zinc-600 font-medium hover:bg-zinc-50 transition-colors">Отмена</button>
+                    <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: ЗАКАЗ -->
+    <div id="order-modal" class="fixed inset-0 bg-zinc-900/40 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] w-full max-w-[400px] overflow-hidden transform scale-95 transition-transform" id="modal-content">
+            <div class="px-6 py-4 border-b border-zinc-100 flex justify-between items-center">
+                <h3 class="font-medium text-[15px] text-zinc-900" id="order-modal-title">Добавить заказ</h3>
+                <button type="button" onclick="closeModal('order-modal')" class="text-zinc-400 hover:text-zinc-600 transition-colors"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            <form id="order-form" class="p-6 space-y-4">
+                <input type="hidden" id="order-id">
+                <div>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Штрихкод / Номер заказа</label>
+                    <input type="text" id="order-barcode" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none placeholder-zinc-300 font-mono text-[13px]">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Размер коробки</label>
+                        <select id="order-size" class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none bg-white text-[13px]">
+                            <option value="S">S</option>
+                            <option value="M">M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                            <option value="XS">XS</option>
+                            <option value="Конверт">Конверт</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Цена (₽)</label>
+                        <input type="number" id="order-price" required min="0" step="1" class="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none">
+                    </div>
+                </div>
+                <div class="pt-6 flex gap-3">
+                    <button type="button" onclick="closeModal('order-modal')" class="flex-1 px-4 py-2 rounded-lg border border-zinc-200 text-zinc-600 font-medium hover:bg-zinc-50 transition-colors">Отмена</button>
+                    <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Логика Firebase и Приложения -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // ⚠️ ВАШ КОНФИГ FIREBASE (ВСТАВЬТЕ СВОИ ДАННЫЕ!)
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4SIDTi2ioJgwVoOUzWJ8kFREUlvn0EVY",
+            authDomain: "boxtracer-13281.firebaseapp.com",
+            projectId: "boxtracer-13281",
+            storageBucket: "boxtracer-13281.firebasestorage.app",
+            messagingSenderId: "709049544614",
+            appId: "1:709049544614:web:64c7ff154f08b875136967"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Вторичное приложение для регистрации сотрудников (чтобы админа не выкидывало из системы)
+        const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+        const secondaryAuth = getAuth(secondaryApp);
+
+        // Строгие пути для безопасности базы данных
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'boxtracker-crm';
+        function getColRef(colName) { return collection(db, 'artifacts', appId, 'public', 'data', colName); }
+        function getDocRef(colName, docId) { return doc(db, 'artifacts', appId, 'public', 'data', colName, docId); }
+
+        let usersDB = [];
+        let ordersDB = [];
+        let currentUser = null;
+        let unsubOrders = null;
+        let unsubUsers = null;
+
+        // === ГЛОБАЛЬНЫЕ ФУНКЦИИ (ДЛЯ UI) ===
+        window.showToast = function(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const isError = type === 'error';
+            const bgColor = isError ? 'bg-red-50 border-red-200 text-red-800' : 'bg-zinc-900 border-zinc-800 text-white';
+            toast.className = `flex items-center gap-3 px-4 py-3 rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.05)] border ${bgColor} transform translate-y-4 opacity-0 transition-all duration-300 ease-out text-[13px] font-medium`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('translate-y-4', 'opacity-0'));
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'scale-95');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, 3000);
+        }
+
+        window.openModal = function(id) {
+            const modal = document.getElementById(id);
+            const content = modal.querySelector('#modal-content');
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            });
+        }
+
+        window.closeModal = function(id) {
+            const modal = document.getElementById(id);
+            const content = modal.querySelector('#modal-content');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 150);
+        }
+
+        window.logout = function() { signOut(auth); }
+
+        window.switchTab = function(tabId) {
+            if (!currentUser.pages[tabId]) {
+                window.showToast('У вас нет доступа к этой странице', 'error');
+                return;
+            }
+            const tabs = { 'dashboard': 'Дашборд', 'orders': 'История заказов', 'inventory': 'ТМЦ и Остатки', 'users': 'Сотрудники' };
+            document.getElementById('page-title').textContent = tabs[tabId];
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active', 'bg-zinc-200/50'));
+            document.getElementById(`nav-${tabId}`).classList.add('active');
+        }
+
+        window.updateSidebar = function() {
+            if (!currentUser) return;
+            document.getElementById('nav-dashboard').style.display = currentUser.pages.dashboard ? 'flex' : 'none';
+            document.getElementById('nav-orders').style.display = currentUser.pages.orders ? 'flex' : 'none';
+            document.getElementById('nav-inventory').style.display = currentUser.pages.inventory ? 'flex' : 'none';
+            document.getElementById('nav-users').style.display = currentUser.pages.users ? 'flex' : 'none';
+            document.getElementById('nav-admin-title').style.display = currentUser.pages.users ? 'block' : 'none';
+        }
+
+        window.startClock = function() {
+            setInterval(() => {
+                const moscowTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Moscow' }));
+                document.getElementById('current-time').textContent = moscowTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            }, 1000);
+        }
+
+        // === АВТОРИЗАЦИЯ И СЛУШАТЕЛИ БД ===
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const docSnap = await getDoc(getDocRef('users', user.uid));
+                if (docSnap.exists()) {
+                    currentUser = { id: user.uid, ...docSnap.data() };
+                    
+                    document.getElementById('user-name-display').textContent = currentUser.name;
+                    document.getElementById('user-role-display').textContent = currentUser.role === 'admin' ? 'Администратор' : 'Сотрудник';
+                    document.getElementById('user-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+
+                    const loginScreen = document.getElementById('login-screen');
+                    const mainApp = document.getElementById('main-app');
+                    loginScreen.classList.add('opacity-0');
+                    setTimeout(() => {
+                        loginScreen.classList.add('hidden');
+                        mainApp.classList.remove('hidden');
+                        requestAnimationFrame(() => mainApp.classList.remove('opacity-0'));
+                    }, 300);
+
+                    window.updateSidebar();
+                    const firstAvailableTab = ['dashboard', 'orders', 'inventory', 'users'].find(t => currentUser.pages[t]);
+                    if (firstAvailableTab) window.switchTab(firstAvailableTab);
+                    
+                    window.startClock();
+                    setupRealtimeListeners();
+                } else {
+                    window.showToast('Профиль не найден. Обратитесь к администратору.', 'error');
+                    signOut(auth);
+                }
+            } else {
+                currentUser = null;
+                const loginScreen = document.getElementById('login-screen');
+                const mainApp = document.getElementById('main-app');
+                mainApp.classList.add('opacity-0');
+                setTimeout(() => {
+                    mainApp.classList.add('hidden');
+                    loginScreen.classList.remove('hidden');
+                    requestAnimationFrame(() => loginScreen.classList.remove('opacity-0'));
+                }, 300);
+                if (unsubOrders) unsubOrders();
+                if (unsubUsers) unsubUsers();
+            }
+        });
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const login = document.getElementById('login-username').value.trim();
+            const pass = document.getElementById('login-password').value.trim();
+            const email = login + "@boxtracker.crm"; // Внутренняя почта для аутентификации
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (error) {
+                // Если это первый запуск, автоматически создадим суперадмина admin/admin
+                if (login === 'admin' && pass === 'admin' && (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found')) {
+                    try {
+                        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                        await setDoc(getDocRef('users', cred.user.uid), {
+                            name: "Суперадмин", login: "admin", role: "admin", canEditAll: true,
+                            pages: { dashboard: true, orders: true, inventory: true, users: true }
+                        });
+                        window.showToast('База инициализирована. Вход выполнен!');
+                    } catch(e2) {
+                        window.showToast('Неверный логин или пароль', 'error');
+                    }
+                } else {
+                    window.showToast('Неверный логин или пароль', 'error');
+                }
+            }
+        });
+
+        function setupRealtimeListeners() {
+            // Слушаем заказы
+            unsubOrders = onSnapshot(getColRef('orders'), (snapshot) => {
+                ordersDB = [];
+                snapshot.forEach(doc => ordersDB.push({ id: doc.id, ...doc.data() }));
+                ordersDB.sort((a, b) => new Date(b.date) - new Date(a.date)); // Сортировка (новые сверху)
+                window.renderOrdersTable();
+            });
+
+            // Слушаем пользователей (только если есть доступ)
+            if (currentUser.pages.users) {
+                unsubUsers = onSnapshot(getColRef('users'), (snapshot) => {
+                    usersDB = [];
+                    snapshot.forEach(doc => usersDB.push({ id: doc.id, ...doc.data() }));
+                    window.renderUsersTable();
+                });
+            }
+        }
+
+        // === ОТОБРАЖЕНИЕ ДАННЫХ ===
+        window.renderUsersTable = function() {
+            const tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = '';
+            usersDB.forEach(user => {
+                const roleBadge = user.role === 'admin' 
+                    ? `<span class="bg-zinc-100 border border-zinc-200 text-zinc-700 px-2 py-0.5 rounded text-[11px] font-medium">Админ</span>` 
+                    : `<span class="text-zinc-500 px-2 py-0.5 text-[12px]">Сотрудник</span>`;
+                
+                const pagesStr = [
+                    user.pages.dashboard ? 'Дашборд' : '', user.pages.orders ? 'Заказы' : '',
+                    user.pages.inventory ? 'ТМЦ' : '', user.pages.users ? 'Сотрудники' : ''
+                ].filter(Boolean).join(', ') || 'Нет доступа';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="py-3 px-5 font-medium text-zinc-900">${user.name}</td>
+                        <td class="py-3 px-5 text-zinc-500 font-mono text-[12px]">${user.login}</td>
+                        <td class="py-3 px-5">${roleBadge}</td>
+                        <td class="py-3 px-5"><span class="text-zinc-600 text-[11px] truncate block max-w-[150px]" title="${pagesStr}">${pagesStr}</span></td>
+                        <td class="py-3 px-5 text-right space-x-1 whitespace-nowrap">
+                            <button onclick="window.openEditUserModal('${user.id}')" class="text-zinc-400 hover:text-blue-500 transition-colors p-1" title="Редактировать"><i class="ph ph-pencil-simple text-lg"></i></button>
+                            ${user.role !== 'admin' ? `<button onclick="window.deleteUser('${user.id}')" class="text-zinc-400 hover:text-red-500 transition-colors p-1" title="Удалить"><i class="ph ph-trash text-lg"></i></button>` : `<span class="inline-block w-[28px]"></span>`}
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        window.renderOrdersTable = function() {
+            const tbody = document.getElementById('orders-table-body');
+            tbody.innerHTML = '';
+            ordersDB.forEach(order => {
+                const d = new Date(order.date);
+                const dateStr = d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const canEditOrder = currentUser.role === 'admin' || currentUser.canEditAll || order.authorId === currentUser.id;
+
+                let actionsHtml = `<span class="text-zinc-300 text-[12px]">—</span>`;
+                if (canEditOrder) {
+                    actionsHtml = `
+                        <button onclick="window.openOrderModal('${order.id}')" class="text-zinc-400 hover:text-blue-500 transition-colors p-1" title="Редактировать"><i class="ph ph-pencil-simple text-lg"></i></button>
+                        <button onclick="window.removeOrderById('${order.id}')" class="text-zinc-400 hover:text-red-500 transition-colors p-1" title="Удалить"><i class="ph ph-trash text-lg"></i></button>
+                    `;
+                }
+                tbody.innerHTML += `
+                    <tr class="hover:bg-zinc-50">
+                        <td class="py-3 px-5 font-mono text-zinc-900">${order.barcode}</td>
+                        <td class="py-3 px-5"><span class="bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded text-[11px] font-medium border border-zinc-200">${order.size}</span></td>
+                        <td class="py-3 px-5 text-zinc-900">${order.price} ₽</td>
+                        <td class="py-3 px-5 text-zinc-600">${order.authorName}</td>
+                        <td class="py-3 px-5 text-zinc-400">${dateStr}</td>
+                        <td class="py-3 px-5 text-right space-x-1 whitespace-nowrap">${actionsHtml}</td>
+                    </tr>`;
+            });
+        }
+
+        // === УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ===
+        document.getElementById('new-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-name').value.trim();
+            const login = document.getElementById('new-login').value.trim();
+            const pass = document.getElementById('new-password').value.trim();
+            const role = document.getElementById('new-role').value;
+            const canEditAll = document.getElementById('new-can-edit-all').checked;
+            
+            const pages = {
+                dashboard: document.getElementById('new-page-dashboard').checked,
+                orders: document.getElementById('new-page-orders').checked,
+                inventory: document.getElementById('new-page-inventory').checked,
+                users: document.getElementById('new-page-users').checked
+            };
+
+            const email = login + "@boxtracker.crm";
+            try {
+                // Создаем через вторичное приложение, чтобы вас не выкинуло из системы
+                const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+                await setDoc(getDocRef('users', userCredential.user.uid), {
+                    name, login, role, canEditAll, pages
+                });
+                window.closeModal('add-user-modal');
+                window.showToast('Аккаунт успешно создан!');
+                e.target.reset();
+            } catch (err) {
+                window.showToast('Ошибка! Возможно логин уже занят.', 'error');
+            }
+        });
+
+        window.openEditUserModal = function(id) {
+            const user = usersDB.find(u => u.id === id);
+            if (!user) return;
+            document.getElementById('edit-user-id').value = user.id;
+            document.getElementById('edit-name').value = user.name;
+            document.getElementById('edit-login').value = user.login;
+            document.getElementById('edit-password').value = "********";
+            document.getElementById('edit-password').disabled = true; // Смена пароля требует других механизмов Firebase
+            document.getElementById('edit-role').value = user.role;
+            document.getElementById('edit-can-edit-all').checked = user.canEditAll || false;
+            
+            document.getElementById('edit-page-dashboard').checked = user.pages.dashboard || false;
+            document.getElementById('edit-page-orders').checked = user.pages.orders || false;
+            document.getElementById('edit-page-inventory').checked = user.pages.inventory || false;
+            document.getElementById('edit-page-users').checked = user.pages.users || false;
+            
+            document.getElementById('edit-role').disabled = (user.role === 'admin'); // Защита админа
+            window.openModal('edit-user-modal');
+        }
+
+        document.getElementById('edit-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-user-id').value;
+            const role = document.getElementById('edit-role').disabled ? 'admin' : document.getElementById('edit-role').value;
+            
+            const userData = {
+                name: document.getElementById('edit-name').value.trim(),
+                canEditAll: document.getElementById('edit-can-edit-all').checked,
+                role: role,
+                pages: {
+                    dashboard: document.getElementById('edit-page-dashboard').checked,
+                    orders: document.getElementById('edit-page-orders').checked,
+                    inventory: document.getElementById('edit-page-inventory').checked,
+                    users: document.getElementById('edit-page-users').checked
+                }
+            };
+
+            await setDoc(getDocRef('users', id), userData, { merge: true });
+            window.closeModal('edit-user-modal');
+            window.showToast('Данные обновлены');
+        });
+
+        window.deleteUser = async function(id) {
+            if (confirm('Удалить сотрудника? Он потеряет доступ к сайту.')) {
+                await deleteDoc(getDocRef('users', id));
+                window.showToast('Аккаунт отключен');
+            }
+        }
+
+        // === УПРАВЛЕНИЕ ЗАКАЗАМИ ===
+        window.openOrderModal = function(id = null) {
+            document.getElementById('order-form').reset();
+            if (id) {
+                const order = ordersDB.find(o => o.id === id);
+                if (!order) return;
+                document.getElementById('order-modal-title').textContent = 'Редактировать заказ';
+                document.getElementById('order-id').value = order.id;
+                document.getElementById('order-barcode').value = order.barcode;
+                document.getElementById('order-size').value = order.size;
+                document.getElementById('order-price').value = order.price;
+            } else {
+                document.getElementById('order-modal-title').textContent = 'Добавить заказ';
+                document.getElementById('order-id').value = '';
+            }
+            window.openModal('order-modal');
+        }
+
+        document.getElementById('order-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const idVal = document.getElementById('order-id').value;
+            const orderData = {
+                barcode: document.getElementById('order-barcode').value.trim(),
+                size: document.getElementById('order-size').value,
+                price: parseInt(document.getElementById('order-price').value)
+            };
+
+            if (idVal) {
+                await setDoc(getDocRef('orders', idVal), orderData, { merge: true });
+                window.showToast('Заказ обновлен');
+            } else {
+                const newId = Date.now().toString();
+                orderData.authorId = currentUser.id;
+                orderData.authorName = currentUser.name;
+                orderData.date = new Date().toISOString();
+                await setDoc(getDocRef('orders', newId), orderData);
+                window.showToast('Заказ добавлен в облако');
+            }
+            window.closeModal('order-modal');
+        });
+
+        window.removeOrderById = async function(id) {
+            if (confirm('Вы уверены, что хотите безвозвратно удалить этот заказ из облака?')) {
+                await deleteDoc(getDocRef('orders', id));
+                window.showToast('Заказ удален');
+            }
+        };
+    </script>
+</body>
+</html>
