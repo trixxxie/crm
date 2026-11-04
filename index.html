@@ -499,10 +499,12 @@
             const pass = document.getElementById('login-password').value.trim();
             const email = login + "@boxtracker.com";
 
-            try {
+                        try {
                 await signInWithEmailAndPassword(auth, email, pass);
             } catch (error) {
+                console.log('ОШИБКА ВХОДА:', error.code);
                 if (login === 'admin' && pass === 'admin') {
+
                     try {
                         const cred = await createUserWithEmailAndPassword(auth, email, pass);
                         await set(getDbRef(`users/${cred.user.uid}`), {
