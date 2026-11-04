@@ -42,7 +42,7 @@
         </div>
     </div>
 
-    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ (Убрана прозрачность opacity-0) -->
+    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
     <div id="main-app" class="h-full w-full flex hidden">
         <!-- БОКОВОЕ МЕНЮ -->
         <aside class="w-[240px] bg-[#f7f7f9] border-r border-zinc-200 flex flex-col shrink-0">
@@ -80,11 +80,8 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="openModal('password-modal')" class="flex-1 py-1.5 border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 rounded-md text-[12px] font-medium" title="Сменить пароль">
-                        <i class="ph ph-key"></i> Пароль
-                    </button>
-                    <button onclick="logout()" class="flex-1 py-1.5 border border-zinc-200 bg-white hover:bg-red-50 text-red-600 rounded-md text-[12px] font-medium">
-                        Выйти
+                    <button onclick="logout()" class="w-full py-1.5 border border-zinc-200 bg-white hover:bg-red-50 text-red-600 rounded-md text-[12px] font-medium">
+                        Выйти из системы
                     </button>
                 </div>
             </div>
@@ -105,37 +102,64 @@
                     <!-- ДАШБОРД -->
                     <div id="tab-dashboard" class="tab-content fade-in">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-lg font-medium text-zinc-800">Статистика продаж</h2>
+                            <h2 class="text-lg font-medium text-zinc-800">Финансовая статистика</h2>
                             <input type="month" id="dash-month-picker" class="px-3 py-1.5 border border-zinc-200 rounded-lg outline-none text-[13px] text-zinc-700 bg-zinc-50 focus:bg-white">
                         </div>
 
                         <!-- За сегодня -->
                         <h3 class="text-[13px] font-medium text-zinc-500 mb-3 uppercase tracking-wider">За сегодня (МСК)</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                            <div class="p-5 rounded-xl border border-zinc-200 bg-white flex flex-col justify-between h-28">
-                                <div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium">Коробок</span><i class="ph ph-package text-lg"></i></div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div class="p-5 rounded-xl border border-zinc-200 bg-zinc-50 flex flex-col justify-between h-28">
+                                <div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium">Коробок сегодня</span><i class="ph ph-package text-lg"></i></div>
                                 <p class="text-3xl font-semibold text-zinc-900" id="dash-today-count">0</p>
                             </div>
-                            <div class="p-5 rounded-xl border border-zinc-200 bg-white flex flex-col justify-between h-28">
-                                <div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium">Выручка</span><i class="ph ph-coins text-lg"></i></div>
+                            <div class="p-5 rounded-xl border border-zinc-200 bg-zinc-50 flex flex-col justify-between h-28">
+                                <div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium">Выручка сегодня</span><i class="ph ph-coins text-lg"></i></div>
                                 <p class="text-3xl font-semibold text-zinc-900"><span id="dash-today-rev">0</span> <span class="text-xl text-zinc-400 font-normal">₽</span></p>
+                            </div>
+                            <div class="p-5 rounded-xl border border-green-200 bg-green-50 flex flex-col justify-between h-28">
+                                <div class="flex justify-between text-green-700 mb-2"><span class="text-[13px] font-medium">Чистая прибыль</span><i class="ph ph-trend-up text-lg"></i></div>
+                                <p class="text-3xl font-semibold text-green-700"><span id="dash-today-profit">0</span> <span class="text-xl text-green-600/50 font-normal">₽</span></p>
                             </div>
                         </div>
 
                         <!-- За выбранный месяц -->
                         <h3 class="text-[13px] font-medium text-zinc-500 mb-3 uppercase tracking-wider">За выбранный месяц</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                            <div class="p-5 rounded-xl border border-zinc-200 bg-white flex flex-col justify-between h-28">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div class="p-5 rounded-xl border border-zinc-200 bg-zinc-50 flex flex-col justify-between h-28">
                                 <div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium">Коробок за месяц</span><i class="ph ph-calendar text-lg"></i></div>
                                 <p class="text-3xl font-semibold text-zinc-900" id="dash-month-count">0</p>
                             </div>
-                            <div class="p-5 rounded-xl border border-zinc-200 bg-white flex flex-col justify-between h-28">
-                                <div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium">Выручка за месяц</span><i class="ph ph-trend-up text-lg"></i></div>
+                            <div class="p-5 rounded-xl border border-zinc-200 bg-zinc-50 flex flex-col justify-between h-28">
+                                <div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium">Выручка за месяц</span><i class="ph ph-wallet text-lg"></i></div>
                                 <p class="text-3xl font-semibold text-zinc-900"><span id="dash-month-rev">0</span> <span class="text-xl text-zinc-400 font-normal">₽</span></p>
                             </div>
-                            <div class="p-5 rounded-xl border border-zinc-200 bg-white flex flex-col justify-between h-28">
-                                <div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium">Выручка за всё время</span><i class="ph ph-wallet text-lg"></i></div>
-                                <p class="text-3xl font-semibold text-zinc-900"><span id="dash-total-rev">0</span> <span class="text-xl text-zinc-400 font-normal">₽</span></p>
+                            <div class="p-5 rounded-xl border border-green-200 bg-green-50 flex flex-col justify-between h-28">
+                                <div class="flex justify-between text-green-700 mb-2"><span class="text-[13px] font-medium">Чистая прибыль</span><i class="ph ph-vault text-lg"></i></div>
+                                <p class="text-3xl font-semibold text-green-700"><span id="dash-month-profit">0</span> <span class="text-xl text-green-600/50 font-normal">₽</span></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Детализация по размерам -->
+                        <div class="p-5 rounded-xl border border-zinc-200 bg-white mb-8">
+                            <h4 class="text-[13px] font-medium text-zinc-500 mb-4">Сводка по размерам за месяц</h4>
+                            <div id="dash-size-breakdown" class="flex flex-wrap gap-3"></div>
+                        </div>
+                        
+                        <!-- Тоталы -->
+                        <h3 class="text-[13px] font-medium text-zinc-500 mb-3 uppercase tracking-wider">За всё время (в облаке)</h3>
+                        <div class="p-5 rounded-xl border border-zinc-200 bg-zinc-50 flex gap-12">
+                            <div>
+                                <p class="text-sm text-zinc-500 mb-1">Всего коробок</p>
+                                <p class="text-2xl font-semibold" id="dash-total-count">0</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-zinc-500 mb-1">Общая выручка</p>
+                                <p class="text-2xl font-semibold text-zinc-900"><span id="dash-total-rev">0</span> ₽</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-zinc-500 mb-1">Общая прибыль</p>
+                                <p class="text-2xl font-semibold text-green-700"><span id="dash-total-profit">0</span> ₽</p>
                             </div>
                         </div>
                     </div>
@@ -143,16 +167,16 @@
                     <!-- СОТРУДНИКИ -->
                     <div id="tab-users" class="tab-content hidden fade-in">
                         <div class="flex justify-between items-center mb-5">
-                            <p class="text-[13px] text-zinc-500">Управление учетными записями</p>
+                            <p class="text-[13px] text-zinc-500">Управление учетными записями и правами доступа</p>
                             <button onclick="openModal('add-user-modal')" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-md text-[13px] font-medium flex items-center gap-1.5">
-                                <i class="ph ph-plus"></i> Создать аккаунт
+                                <i class="ph ph-plus"></i> Создать сотрудника
                             </button>
                         </div>
                         <div class="border border-zinc-200 rounded-lg overflow-hidden bg-white">
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-zinc-50 text-zinc-500 text-[12px] border-b border-zinc-200">
-                                        <th class="py-3 px-5 font-medium">Сотрудник</th>
+                                        <th class="py-3 px-5 font-medium">Имя</th>
                                         <th class="py-3 px-5 font-medium">Email</th>
                                         <th class="py-3 px-5 font-medium">Роль</th>
                                         <th class="py-3 px-5 font-medium text-right">Действия</th>
@@ -163,11 +187,11 @@
                         </div>
                     </div>
 
-                    <!-- ЗАКАЗЫ -->
+                    <!-- ЗАКАЗЫ (Двойная база) -->
                     <div id="tab-orders" class="tab-content hidden fade-in">
                         <div class="flex justify-between items-center mb-5">
-                             <p class="text-[13px] text-zinc-500">История расходов</p>
-                             <button onclick="openOrderModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-md text-[13px] font-medium flex items-center gap-1.5">
+                             <p class="text-[13px] text-zinc-500">История расходов (Firebase + Google Sheets)</p>
+                             <button onclick="window.openOrderModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-md text-[13px] font-medium flex items-center gap-1.5">
                                 <i class="ph ph-plus"></i> Добавить заказ
                             </button>
                         </div>
@@ -188,9 +212,9 @@
                         </div>
                     </div>
 
-                    <!-- ИНВЕНТАРИЗАЦИЯ -->
+                    <!-- ТМЦ -->
                     <div id="tab-inventory" class="tab-content hidden fade-in">
-                        <p class="text-[13px] text-zinc-500 mb-5">Остатки на складе (Обновляется ботом)</p>
+                        <p class="text-[13px] text-zinc-500 mb-5">Остатки на складе (Синхронизировано с ботом)</p>
                         <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
                     </div>
 
@@ -203,7 +227,7 @@
     <div id="add-user-modal" class="fixed inset-0 bg-zinc-900/40 z-50 hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white rounded-xl w-full max-w-[400px] overflow-hidden transform scale-95 transition-transform" id="modal-content">
             <div class="px-6 py-4 border-b border-zinc-100 flex justify-between items-center">
-                <h3 class="font-medium text-[15px]">Новый аккаунт</h3>
+                <h3 class="font-medium text-[15px]">Новый сотрудник</h3>
                 <button type="button" onclick="closeModal('add-user-modal')" class="text-zinc-400 hover:text-zinc-600"><i class="ph ph-x text-lg"></i></button>
             </div>
             <form id="new-user-form" class="p-6 space-y-4">
@@ -212,44 +236,31 @@
                     <input type="text" id="new-name" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none">
                 </div>
                 <div>
-                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Реальный Email (для входа)</label>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Email (для входа на сайт)</label>
                     <input type="email" id="new-email" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none" placeholder="ivan@gmail.com">
                 </div>
                 <div>
                     <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Пароль (мин. 6 символов)</label>
                     <input type="text" id="new-password" required minlength="6" class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Роль</label>
-                        <select id="new-role" class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none text-[13px]">
-                            <option value="employee">Сотрудник</option>
-                            <option value="admin">Администратор</option>
-                        </select>
+                <div>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Роль</label>
+                    <select id="new-role" class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none text-[13px]">
+                        <option value="employee">Сотрудник</option>
+                        <option value="admin">Администратор (Полный доступ)</option>
+                    </select>
+                </div>
+                <div class="pt-2 border-t border-zinc-100">
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-2">Доступ к разделам (для Сотрудника)</label>
+                    <div class="flex gap-4 text-[13px]">
+                        <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="perm-dash" class="rounded" checked> Дашборд</label>
+                        <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="perm-orders" class="rounded" checked> Заказы</label>
+                        <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="perm-inv" class="rounded" checked> ТМЦ</label>
                     </div>
                 </div>
-                <div class="pt-6 flex gap-3">
+                <div class="pt-4 flex gap-3">
                     <button type="button" onclick="closeModal('add-user-modal')" class="flex-1 px-4 py-2 border border-zinc-200 rounded-lg">Отмена</button>
                     <button type="submit" class="flex-1 px-4 py-2 bg-zinc-900 text-white rounded-lg">Создать</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- МОДАЛЬНОЕ ОКНО: ПАРОЛЬ -->
-    <div id="password-modal" class="fixed inset-0 bg-zinc-900/40 z-50 hidden flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white rounded-xl w-full max-w-[350px] overflow-hidden transform scale-95 transition-transform" id="modal-content">
-            <div class="px-6 py-4 border-b border-zinc-100 flex justify-between items-center">
-                <h3 class="font-medium text-[15px]">Смена пароля</h3>
-                <button type="button" onclick="closeModal('password-modal')" class="text-zinc-400 hover:text-zinc-600"><i class="ph ph-x text-lg"></i></button>
-            </div>
-            <form id="password-form" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Новый пароль</label>
-                    <input type="password" id="update-password" required minlength="6" class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none">
-                </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="submit" class="w-full px-4 py-2 bg-zinc-900 text-white rounded-lg">Обновить</button>
                 </div>
             </form>
         </div>
@@ -259,13 +270,13 @@
     <div id="order-modal" class="fixed inset-0 bg-zinc-900/40 z-50 hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white rounded-xl w-full max-w-[400px] overflow-hidden transform scale-95 transition-transform" id="modal-content">
             <div class="px-6 py-4 border-b border-zinc-100 flex justify-between items-center">
-                <h3 class="font-medium text-[15px]" id="order-modal-title">Добавить заказ</h3>
+                <h3 class="font-medium text-[15px]" id="order-modal-title">Заказ</h3>
                 <button type="button" onclick="closeModal('order-modal')" class="text-zinc-400 hover:text-zinc-600"><i class="ph ph-x text-lg"></i></button>
             </div>
             <form id="order-form" class="p-6 space-y-4">
                 <input type="hidden" id="order-id">
                 <div>
-                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Номер заказа</label>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Штрихкод</label>
                     <input type="text" id="order-barcode" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none font-mono text-[13px]">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
@@ -276,30 +287,37 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Цена (₽)</label>
+                        <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Цена продажи (₽)</label>
                         <input type="number" id="order-price" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none">
                     </div>
                 </div>
                 <div class="pt-6 flex gap-3">
                     <button type="button" onclick="closeModal('order-modal')" class="flex-1 px-4 py-2 border border-zinc-200 rounded-lg">Отмена</button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-zinc-900 text-white rounded-lg">Сохранить</button>
+                    <button type="submit" id="save-order-btn" class="flex-1 px-4 py-2 bg-zinc-900 text-white rounded-lg">Сохранить</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Firebase SDK + Google Sheets -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getDatabase, ref, set, get, onValue, remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getDatabase, ref, set, get, update, onValue, remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
         // ==========================================
-        // ⚠️ ВАШ КОНФИГ FIREBASE
+        // НАСТРОЙКИ СИНХРОНИЗАЦИИ GOOGLE ТАБЛИЦ
+        // ==========================================
+        GOOGLE_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbySMSPqmQxTU_4V8UxEjKracJtlmqWJMLAxWnBvMkdNChh24QKefsUvZ_kAJv8rRVjpSg/exec"
+		APPS_SCRIPT_TOKEN = "khiuwhuifweuifhuih234" 
+
+        // ==========================================
+        // ВАШ КОНФИГ FIREBASE
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyB4SIDTi2ioJgwVoOUzWJ8kFREUlvn0EVY",
             authDomain: "boxtracer-13281.firebaseapp.com",
-            databaseURL: "https://boxtracer-13281-default-rtdb.europe-west1.firebasedatabase.app",
+            databaseURL: "https://boxtracer-13281-default-rtdb.europe-west1.firebasedatabase.app/",
             projectId: "boxtracer-13281",
             storageBucket: "boxtracer-13281.firebasestorage.app",
             messagingSenderId: "709049544614",
@@ -316,15 +334,12 @@
         function getDbRef(path) { return ref(db, `artifacts/${appId}/public/data/${path}`); }
 
         let ordersDB = [];
-        let inventoryDB = [];
+        let pricesDB = {};
         let currentUser = null;
 
-        // Инициализация дат (МСК)
-        const getMoscowDateStr = (date = new Date()) => {
-            return new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }));
-        };
+        const getMoscowDateStr = (date = new Date()) => { return new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Moscow' })); };
         const monthPicker = document.getElementById('dash-month-picker');
-        monthPicker.value = getMoscowDateStr().toISOString().substring(0, 7); // YYYY-MM
+        monthPicker.value = getMoscowDateStr().toISOString().substring(0, 7);
         monthPicker.addEventListener('change', () => window.calculateDashboard());
 
         window.openModal = function(id) { document.getElementById(id).classList.remove('hidden'); }
@@ -343,34 +358,48 @@
             document.getElementById('current-time').textContent = getMoscowDateStr().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
         }, 1000);
 
+        // ФУНКЦИЯ ДВОЙНОЙ ОТПРАВКИ (GSheets)
+        async function syncGoogleSheet(action, payload) {
+            if (!GOOGLE_WEBAPP_URL || GOOGLE_WEBAPP_URL.includes("ВСТАВЬТЕ_ССЫЛКУ")) return;
+            try {
+                payload.token = APPS_SCRIPT_TOKEN;
+                payload.action = action;
+                const req = await fetch(GOOGLE_WEBAPP_URL, { method: 'POST', body: JSON.stringify(payload) });
+                return await req.json();
+            } catch (e) { console.error("Google Sheets Sync Error:", e); return null; }
+        }
+
         // АВТОРИЗАЦИЯ
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const usersDbSnap = await get(getDbRef('users'));
-                
-                // Система первого запуска: если база пуста, первый вошедший становится Админом
-                if (!usersDbSnap.exists()) {
-                    const newAdminData = { name: 'Главный Админ', email: user.email, role: 'admin' };
-                    await set(getDbRef(`users/${user.uid}`), newAdminData);
-                    currentUser = { id: user.uid, ...newAdminData };
+                const userSnap = await get(getDbRef(`users/${user.uid}`));
+                if (userSnap.exists()) {
+                    currentUser = { id: user.uid, email: user.email, ...userSnap.val() };
                 } else {
-                    const userSnap = await get(getDbRef(`users/${user.uid}`));
-                    if (userSnap.exists()) {
-                        currentUser = { id: user.uid, email: user.email, ...userSnap.val() };
-                    } else {
-                        alert("Доступ запрещен. Ваш аккаунт не зарегистрирован в системе CRM. Обратитесь к администратору.");
-                        signOut(auth);
-                        return;
-                    }
+                    const newAdmin = { name: 'Главный Админ', email: user.email, role: 'admin', perms: {dash: true, orders: true, inv: true} };
+                    await set(getDbRef(`users/${user.uid}`), newAdmin);
+                    currentUser = { id: user.uid, ...newAdmin };
                 }
                 
                 document.getElementById('user-name-display').textContent = currentUser.name;
                 document.getElementById('user-role-display').textContent = currentUser.role === 'admin' ? 'Администратор' : 'Сотрудник';
                 
-                // Прячем экран логина и показываем интерфейс
+                if (currentUser.role !== 'admin') {
+                    document.getElementById('nav-admin-title').classList.add('hidden');
+                    document.getElementById('nav-users').classList.add('hidden');
+                    if (!currentUser.perms?.dash) document.getElementById('nav-dashboard').classList.add('hidden');
+                    if (!currentUser.perms?.orders) document.getElementById('nav-orders').classList.add('hidden');
+                    if (!currentUser.perms?.inv) document.getElementById('nav-inventory').classList.add('hidden');
+                    
+                    if (currentUser.perms?.dash) switchTab('dashboard');
+                    else if (currentUser.perms?.orders) switchTab('orders');
+                    else if (currentUser.perms?.inv) switchTab('inventory');
+                } else {
+                    switchTab('dashboard');
+                }
+
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
-                
                 setupRealtimeListeners();
             } else {
                 document.getElementById('main-app').classList.add('hidden');
@@ -380,23 +409,16 @@
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email').value.trim();
-            const pass = document.getElementById('login-password').value.trim();
-            try { await signInWithEmailAndPassword(auth, email, pass); } 
+            try { await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value); } 
             catch (err) { alert('Неверный Email или пароль'); }
         });
 
-        document.getElementById('password-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                await updatePassword(auth.currentUser, document.getElementById('update-password').value);
-                alert('Пароль успешно изменен!');
-                closeModal('password-modal');
-            } catch (err) { alert('Ошибка смены пароля. Возможно, нужно перезайти в аккаунт.'); }
-        });
-
-        // ДАННЫЕ
         function setupRealtimeListeners() {
+            onValue(getDbRef('prices'), (snapshot) => {
+                pricesDB = snapshot.val() || {};
+                window.calculateDashboard();
+            });
+
             onValue(getDbRef('orders'), (snapshot) => {
                 ordersDB = [];
                 snapshot.forEach(child => ordersDB.push({ id: child.key, ...child.val() }));
@@ -405,48 +427,141 @@
                 window.calculateDashboard();
             });
 
+            window.deleteUser = async function(uid) {
+                if(confirm('Точно удалить сотрудника? Он больше не сможет войти.')) {
+                    await remove(getDbRef(`users/${uid}`));
+                }
+            };
+
             onValue(getDbRef('users'), (snapshot) => {
                 const tbody = document.getElementById('users-table-body');
                 tbody.innerHTML = '';
                 snapshot.forEach(child => {
                     const u = child.val();
-                    tbody.innerHTML += `<tr><td class="py-3 px-5">${u.name}</td><td class="py-3 px-5">${u.email}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="remove(ref(db, 'artifacts/${appId}/public/data/users/${child.key}'))" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
-                });
-            });
-
-            onValue(getDbRef('inventory'), (snapshot) => {
-                const grid = document.getElementById('inventory-grid');
-                grid.innerHTML = '';
-                snapshot.forEach(child => {
-                    const item = child.val();
-                    grid.innerHTML += `<div class="p-4 rounded-xl border border-zinc-200 bg-white flex justify-between items-center hover:border-zinc-300 transition-colors"><p class="font-medium text-zinc-900">${item.name}</p><div class="text-lg font-semibold text-zinc-800">${item.quantity} шт.</div></div>`;
+                    const permsTxt = u.role === 'admin' ? 'Все разделы' : 
+                        [(u.perms?.dash?'Дашборд':''), (u.perms?.orders?'Заказы':''), (u.perms?.inv?'ТМЦ':'')].filter(Boolean).join(', ');
+                    tbody.innerHTML += `<tr><td class="py-3 px-5 font-medium">${u.name}<br><span class="text-[11px] font-normal text-zinc-400">Доступ: ${permsTxt || 'Нет'}</span></td><td class="py-3 px-5">${u.email}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="window.deleteUser('${child.key}')" class="text-red-500 hover:underline text-[13px]">Удалить</button></td></tr>`;
                 });
             });
         }
 
         window.calculateDashboard = function() {
             const todayStr = getMoscowDateStr().toISOString().split('T')[0];
-            const selectedMonth = monthPicker.value; // YYYY-MM
+            const selectedMonth = monthPicker.value;
             
-            let todayCount = 0, todayRev = 0, monthCount = 0, monthRev = 0, totalRev = 0;
+            let tCount = 0, tRev = 0, tCost = 0, mCount = 0, mRev = 0, mCost = 0, totCount = 0, totRev = 0, totCost = 0;
+            let sizesBreakdown = {};
 
             ordersDB.forEach(d => {
                 const price = parseInt(d.price) || 0;
-                totalRev += price;
+                const size = d.size || 'Unknown';
+                const cost = parseFloat(pricesDB[size]) || 0; 
                 
-                // Переводим дату заказа в МСК для точного сравнения
+                totCount++; totRev += price; totCost += cost;
                 const orderDateMsk = getMoscowDateStr(new Date(d.date)).toISOString();
                 
-                if (orderDateMsk.startsWith(todayStr)) { todayCount++; todayRev += price; }
-                if (orderDateMsk.startsWith(selectedMonth)) { monthCount++; monthRev += price; }
+                if (orderDateMsk.startsWith(todayStr)) { tCount++; tRev += price; tCost += cost; }
+                if (orderDateMsk.startsWith(selectedMonth)) { 
+                    mCount++; mRev += price; mCost += cost; 
+                    sizesBreakdown[size] = (sizesBreakdown[size] || 0) + 1;
+                }
             });
 
-            document.getElementById('dash-today-count').textContent = todayCount;
-            document.getElementById('dash-today-rev').textContent = todayRev;
-            document.getElementById('dash-month-count').textContent = monthCount;
-            document.getElementById('dash-month-rev').textContent = monthRev;
-            document.getElementById('dash-total-rev').textContent = totalRev;
+            document.getElementById('dash-today-count').textContent = tCount;
+            document.getElementById('dash-today-rev').textContent = tRev;
+            document.getElementById('dash-today-profit').textContent = tRev - tCost;
+            document.getElementById('dash-month-count').textContent = mCount;
+            document.getElementById('dash-month-rev').textContent = mRev;
+            document.getElementById('dash-month-profit').textContent = mRev - mCost;
+            document.getElementById('dash-total-count').textContent = totCount;
+            document.getElementById('dash-total-rev').textContent = totRev;
+            document.getElementById('dash-total-profit').textContent = totRev - totCost;
+
+            const breakdownDiv = document.getElementById('dash-size-breakdown');
+            breakdownDiv.innerHTML = '';
+            if (Object.keys(sizesBreakdown).length === 0) {
+                breakdownDiv.innerHTML = '<span class="text-zinc-400">Нет данных за этот месяц</span>';
+            } else {
+                for (let s in sizesBreakdown) breakdownDiv.innerHTML += `<div class="px-3 py-1.5 bg-zinc-100 rounded-md text-[13px] font-medium text-zinc-700">${s} <span class="text-zinc-400 ml-1">— ${sizesBreakdown[s]} шт.</span></div>`;
+            }
         }
+
+        window.openOrderModal = function(id = null) {
+            document.getElementById('order-form').reset();
+            if (id) {
+                const order = ordersDB.find(o => o.id === id);
+                if(order) {
+                    document.getElementById('order-id').value = id;
+                    document.getElementById('order-barcode').value = order.barcode;
+                    document.getElementById('order-size').value = order.size;
+                    document.getElementById('order-price').value = order.price;
+                    document.getElementById('order-modal-title').textContent = 'Редактировать заказ';
+                }
+            } else {
+                document.getElementById('order-id').value = '';
+                document.getElementById('order-modal-title').textContent = 'Добавить заказ';
+            }
+            openModal('order-modal');
+        }
+
+        // ДОБАВЛЕНИЕ / ИЗМЕНЕНИЕ ЗАКАЗА С ДВОЙНОЙ СИНХРОНИЗАЦИЕЙ
+        document.getElementById('order-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            document.getElementById('save-order-btn').textContent = "Синхронизация...";
+            
+            const id = document.getElementById('order-id').value;
+            const data = {
+                barcode: document.getElementById('order-barcode').value.trim(),
+                size: document.getElementById('order-size').value,
+                price: parseInt(document.getElementById('order-price').value),
+                authorId: currentUser.id, authorName: currentUser.name, date: new Date().toISOString()
+            };
+            
+            if (id) {
+                // ОБНОВЛЯЕМ FIREBASE
+                await update(getDbRef(`orders/${id}`), data); 
+                
+                // ОБНОВЛЯЕМ GOOGLE SHEETS
+                const gsRes = await syncGoogleSheet('get_all', {});
+                if (gsRes && gsRes.status === 'success') {
+                    const rowIdx = gsRes.data.findIndex(r => String(r[2]) === String(data.barcode));
+                    if (rowIdx !== -1) {
+                        await syncGoogleSheet('update', { row: rowIdx + 1, col: 1, value: data.size });
+                        await syncGoogleSheet('update', { row: rowIdx + 1, col: 2, value: data.price });
+                    }
+                }
+            } else {
+                // НОВЫЙ В FIREBASE
+                await set(getDbRef(`orders/${Date.now()}`), data);
+                
+                // НОВЫЙ В GOOGLE SHEETS
+                const mskDate = getMoscowDateStr().toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+                await syncGoogleSheet('append', { data: [data.size, data.price, data.barcode, data.authorName, mskDate, "Добавлено с сайта"] });
+            }
+            
+            document.getElementById('save-order-btn').textContent = "Сохранить";
+            closeModal('order-modal');
+        });
+
+        // УДАЛЕНИЕ С ДВОЙНОЙ СИНХРОНИЗАЦИЕЙ
+        window.removeOrderById = async function(id) { 
+            if (confirm('Удалить заказ из базы?')) {
+                const order = ordersDB.find(o => o.id === id);
+                if (order) {
+                    // УДАЛЯЕМ ИЗ FIREBASE
+                    await remove(getDbRef(`orders/${id}`)); 
+                    
+                    // УДАЛЯЕМ ИЗ GOOGLE SHEETS
+                    const gsRes = await syncGoogleSheet('get_all', {});
+                    if (gsRes && gsRes.status === 'success') {
+                        const rowIdx = gsRes.data.findIndex(r => String(r[2]) === String(order.barcode));
+                        if (rowIdx !== -1) {
+                            await syncGoogleSheet('delete', { row: rowIdx + 1 });
+                        }
+                    }
+                }
+            }
+        };
 
         window.renderOrdersTable = function() {
             const tbody = document.getElementById('orders-table-body');
@@ -454,41 +569,27 @@
             ordersDB.forEach(order => {
                 const d = getMoscowDateStr(new Date(order.date));
                 const dateStr = d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-                tbody.innerHTML += `<tr class="hover:bg-zinc-50"><td class="py-3 px-5 font-mono text-zinc-800">${order.barcode}</td><td class="py-3 px-5 text-zinc-700">${order.size}</td><td class="py-3 px-5 font-medium text-zinc-900">${order.price} ₽</td><td class="py-3 px-5 text-zinc-600">${order.authorName}</td><td class="py-3 px-5 text-zinc-400 text-[12px]">${dateStr}</td><td class="py-3 px-5 text-right"><button onclick="window.removeOrderById('${order.id}')" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
+                tbody.innerHTML += `<tr class="hover:bg-zinc-50"><td class="py-3 px-5 font-mono text-zinc-800">${order.barcode}</td><td class="py-3 px-5 text-zinc-700">${order.size}</td><td class="py-3 px-5 font-medium text-zinc-900">${order.price} ₽</td><td class="py-3 px-5 text-zinc-600">${order.authorName}</td><td class="py-3 px-5 text-zinc-400 text-[12px]">${dateStr}</td><td class="py-3 px-5 text-right"><button onclick="window.openOrderModal('${order.id}')" class="text-blue-500 hover:underline mr-3">Изменить</button><button onclick="window.removeOrderById('${order.id}')" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
             });
         }
 
-        // ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
         document.getElementById('new-user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('new-email').value.trim();
             const pass = document.getElementById('new-password').value.trim();
+            const role = document.getElementById('new-role').value;
             try {
                 const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
                 await set(getDbRef(`users/${cred.user.uid}`), {
                     name: document.getElementById('new-name').value.trim(),
-                    email: email, role: document.getElementById('new-role').value
+                    email: email, role: role,
+                    perms: { dash: document.getElementById('perm-dash').checked, orders: document.getElementById('perm-orders').checked, inv: document.getElementById('perm-inv').checked }
                 });
                 closeModal('add-user-modal');
                 e.target.reset();
-                alert('Сотрудник успешно добавлен! Он может использовать этот Email для входа.');
-            } catch (err) { alert('Ошибка! Возможно Email уже занят или слишком простой пароль.'); }
+                alert('Сотрудник добавлен! Он может использовать этот Email для входа.');
+            } catch (err) { alert('Ошибка! Email уже занят или слабый пароль.'); }
         });
-
-        // ЗАКАЗЫ (РУЧНОЕ УПРАВЛЕНИЕ)
-        window.openOrderModal = function() { document.getElementById('order-form').reset(); openModal('order-modal'); }
-        document.getElementById('order-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const orderData = {
-                barcode: document.getElementById('order-barcode').value.trim(),
-                size: document.getElementById('order-size').value,
-                price: parseInt(document.getElementById('order-price').value),
-                authorId: currentUser.id, authorName: currentUser.name, date: new Date().toISOString()
-            };
-            await set(getDbRef(`orders/${Date.now()}`), orderData);
-            closeModal('order-modal');
-        });
-        window.removeOrderById = async function(id) { if (confirm('Точно удалить заказ?')) await remove(getDbRef(`orders/${id}`)); };
     </script>
 </body>
 </html>
