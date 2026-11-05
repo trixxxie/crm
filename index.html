@@ -615,7 +615,11 @@
                         // Ищем с конца, как делает бот, чтобы найти самый последний (актуальный) заказ
                         let rowIdx = -1;
                         for (let i = gsRes.data.length - 1; i >= 0; i--) {
-                            if (gsRes.data[i] && gsRes.data[i].length > 2 && String(gsRes.data[i][2]) === String(searchBarcode)) {
+                            // Ищем сначала по уникальному ID (7-я колонка), затем по штрихкоду (для старых заказов)
+                            if (gsRes.data[i] && gsRes.data[i].length > 6 && String(gsRes.data[i][6]) === String(id)) {
+                                rowIdx = i;
+                                break;
+                            } else if (gsRes.data[i] && gsRes.data[i].length > 2 && String(gsRes.data[i][2]) === String(searchBarcode) && gsRes.data[i].length <= 6) {
                                 rowIdx = i;
                                 break;
                             }
