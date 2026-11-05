@@ -278,7 +278,7 @@
                 <input type="hidden" id="order-id">
                 <div>
                     <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Штрихкод</label>
-                    <input type="text" id="order-barcode" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none font-mono text-[13px]">
+                    <input type="text" id="order-barcode" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '')" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none font-mono text-[13px]">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -339,7 +339,10 @@
         let usersDB = {};
         let currentUser = null;
 
-        const getMoscowDateStr = (date = new Date()) => { return new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Moscow' })); };
+        const getMoscowDateStr = (date = new Date()) => { 
+            if (isNaN(date)) date = new Date(); // Защита от старых заказов без даты, чтобы скрипт не падал
+            return new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Moscow' })); 
+        };
         
         const formatCustomDate = (dateObj) => {
             const pad = (n) => n.toString().padStart(2, '0');
@@ -430,7 +433,12 @@
             onValue(getDbRef('orders'), (snapshot) => {
                 ordersDB = [];
                 snapshot.forEach(child => ordersDB.push({ id: child.key, ...child.val() }));
-                ordersDB.sort((a, b) => new Date(b.date) - new Date(a.date));
+                // Безопасная сортировка (защита от заказов без даты)
+                ordersDB.sort((a, b) => {
+                    const d1 = new Date(a.date).getTime();
+                    const d2 = new Date(b.date).getTime();
+                    return (isNaN(d2) ? 0 : d2) - (isNaN(d1) ? 0 : d1);
+                });
                 window.renderOrdersTable();
                 window.calculateDashboard();
             });
@@ -507,12 +515,17 @@
                 const cost = parseFloat(pricesDB[size]) || 0; 
                 
                 totCount++; totRev += price; totCost += cost;
-                const orderDateMsk = getMoscowDateStr(new Date(d.date)).toISOString();
                 
-                if (orderDateMsk.startsWith(todayStr)) { tCount++; tRev += price; tCost += cost; }
-                if (orderDateMsk.startsWith(selectedMonth)) { 
-                    mCount++; mRev += price; mCost += cost; 
-                    sizesBreakdown[size] = (sizesBreakdown[size] || 0) + 1;
+                // Проверка на корректность даты (защита от старых форматов)
+                const origDate = new Date(d.date);
+                if (!isNaN(origDate.getTime())) {
+                    const orderDateMsk = getMoscowDateStr(origDate).toISOString();
+                    
+                    if (orderDateMsk.startsWith(todayStr)) { tCount++; tRev += price; tCost += cost; }
+                    if (orderDateMsk.startsWith(selectedMonth)) { 
+                        mCount++; mRev += price; mCost += cost; 
+                        sizesBreakdown[size] = (sizesBreakdown[size] || 0) + 1;
+                    }
                 }
             });
 
@@ -560,7 +573,7 @@
             
             const id = document.getElementById('order-id').value;
             const data = {
-                barcode: document.getElementById('order-barcode').value.trim(),
+                barcode: document.getElementById('order-barcode').value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '').trim(),
                 size: document.getElementById('order-size').value,
                 price: parseInt(document.getElementById('order-price').value),
                 authorId: currentUser.id, authorName: currentUser.name, date: new Date().toISOString()
@@ -616,11 +629,21 @@
             const tbody = document.getElementById('orders-table-body');
             tbody.innerHTML = '';
             ordersDB.forEach(order => {
-                const d = getMoscowDateStr(new Date(order.date));
-                const dateStr = formatCustomDate(d);
+                // Выводим "Нет даты" если дата битая
+                const origDate = new Date(order.date);
+                let dateStr = "Нет даты";
+                if (!isNaN(origDate.getTime())) {
+                    dateStr = formatCustomDate(getMoscowDateStr(origDate));
+                }
+                
                 tbody.innerHTML += `<tr class="hover:bg-zinc-50"><td class="py-3 px-5 font-mono text-zinc-800">${order.barcode}</td><td class="py-3 px-5 text-zinc-700">${order.size}</td><td class="py-3 px-5 font-medium text-zinc-900">${order.price} ₽</td><td class="py-3 px-5 text-zinc-600">${order.authorName}</td><td class="py-3 px-5 text-zinc-400 text-[12px]">${dateStr}</td><td class="py-3 px-5 text-right"><button onclick="window.openOrderModal('${order.id}')" class="text-blue-500 hover:underline mr-3">Изменить</button><button onclick="window.removeOrderById('${order.id}')" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
             });
         }
+
+        // Блокировка ввода любых букв в штрихкод (только цифры)
+        document.getElementById('order-barcode').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '');
+        });
 
         document.getElementById('new-user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
