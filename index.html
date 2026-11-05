@@ -633,6 +633,7 @@
                 
             } else {
                 // НОВЫЙ ЗАКАЗ В FIREBASE (Устанавливаем дату и автора)
+                const newId = String(Date.now());
                 const data = {
                     barcode: document.getElementById('order-barcode').value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '').trim(),
                     size: document.getElementById('order-size').value,
@@ -642,14 +643,14 @@
                     date: new Date().toISOString()
                 };
                 
-                await set(getDbRef(`orders/${Date.now()}`), data);
+                await set(getDbRef(`orders/${newId}`), data);
                 
                 document.getElementById('save-order-btn').textContent = "Сохранить";
                 closeModal('order-modal');
 
-                // НОВЫЙ В GOOGLE SHEETS В ФОНЕ
+                // НОВЫЙ В GOOGLE SHEETS В ФОНЕ (Передаем ID 7-й колонкой)
                 const mskDate = formatCustomDate(getMoscowDateStr());
-                syncGoogleSheet('append', { data: [data.size, data.price, data.barcode, data.authorName, mskDate, "Добавлено с сайта"] });
+                syncGoogleSheet('append', { data: [data.size, data.price, data.barcode, data.authorName, mskDate, "Добавлено с сайта", newId] });
             }
         });
 
@@ -664,7 +665,17 @@
                     // УДАЛЯЕМ ИЗ GOOGLE SHEETS
                     const gsRes = await syncGoogleSheet('get_all', {});
                     if (gsRes && gsRes.status === 'success') {
-                        const rowIdx = gsRes.data.findIndex(r => String(r[2]) === String(order.barcode));
+                        let rowIdx = -1;
+                        for (let i = gsRes.data.length - 1; i >= 0; i--) {
+                            // Ищем сначала по ID (для новых заказов), затем по штрихкоду (для старых)
+                            if (gsRes.data[i] && gsRes.data[i].length > 6 && String(gsRes.data[i][6]) === String(id)) {
+                                rowIdx = i;
+                                break;
+                            } else if (gsRes.data[i] && gsRes.data[i].length > 2 && String(gsRes.data[i][2]) === String(order.barcode) && gsRes.data[i].length <= 6) {
+                                rowIdx = i;
+                                break;
+                            }
+                        }
                         if (rowIdx !== -1) {
                             await syncGoogleSheet('delete', { row: rowIdx + 1 });
                         }
@@ -684,7 +695,7 @@
                     dateStr = formatCustomDate(getMoscowDateStr(origDate));
                 }
                 
-                tbody.innerHTML += `<tr class="hover:bg-zinc-50"><td class="py-3 px-5 font-mono text-zinc-800">${order.barcode}</td><td class="py-3 px-5 text-zinc-700">${order.size}</td><td class="py-3 px-5 font-medium text-zinc-900">${order.price} ₽</td><td class="py-3 px-5 text-zinc-600">${order.authorName}</td><td class="py-3 px-5 text-zinc-400 text-[12px]">${dateStr}</td><td class="py-3 px-5 text-right"><button onclick="window.openOrderModal('${order.id}')" class="text-blue-500 hover:underline mr-3">Изменить</button><button onclick="window.removeOrderById('${order.id}')" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
+                tbody.innerHTML += `<tr class="hover:bg-zinc-50"><td class="py-3 px-5 font-mono text-zinc-800">${order.barcode}<br><span class="text-[10px] text-zinc-400">ID: ${order.id}</span></td><td class="py-3 px-5 text-zinc-700">${order.size}</td><td class="py-3 px-5 font-medium text-zinc-900">${order.price} ₽</td><td class="py-3 px-5 text-zinc-600">${order.authorName}</td><td class="py-3 px-5 text-zinc-400 text-[12px]">${dateStr}</td><td class="py-3 px-5 text-right"><button onclick="window.openOrderModal('${order.id}')" class="text-blue-500 hover:underline mr-3">Изменить</button><button onclick="window.removeOrderById('${order.id}')" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
             });
         }
 
