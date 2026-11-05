@@ -494,10 +494,18 @@
                 const inv = snapshot.val() || {};
                 const grid = document.getElementById('inventory-grid');
                 grid.innerHTML = '';
-                const sizes = ["S", "M", "L", "XL", "XS", "Конверт"];
+                const sizes = [
+                    "Короб XL", "Короб L", "Короб M", "Короб S", "Короб XS", "Конверт картонный",
+                    "Сейф A2 (Бренд)", "Сейф A3 (Бренд)", "Сейф A4 (Бренд)",
+                    "Сейф A2", "Сейф A3", "Сейф A4",
+                    "Скотч (бренд)", "Скотч прозрачный", "Пупырчатая пленка",
+                    "Стрейч (Черный)", "Стрейч", "Юнипаки", "Стикеры хрупкое",
+                    "Шк для принтера", "Красящая лента", "Пломбы", "Пломбы мягкие",
+                    "Пакеты клиентские"
+                ];
                 sizes.forEach(s => {
                     const count = inv[s] || 0;
-                    grid.innerHTML += `<div class="p-5 rounded-xl border border-zinc-200 bg-zinc-50 flex flex-col justify-between h-28"><div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium">Размер ${s}</span><i class="ph ph-package text-lg"></i></div><p class="text-3xl font-semibold text-zinc-900">${count} <span class="text-sm font-normal text-zinc-400">шт.</span></p></div>`;
+                    grid.innerHTML += `<div class="p-5 rounded-xl border border-zinc-200 bg-zinc-50 flex flex-col justify-between h-28"><div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium truncate pr-2" title="${s}">${s}</span><i class="ph ph-package text-lg shrink-0"></i></div><p class="text-3xl font-semibold text-zinc-900">${count} <span class="text-sm font-normal text-zinc-400">шт.</span></p></div>`;
                 });
             });
         }
