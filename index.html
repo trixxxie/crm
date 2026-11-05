@@ -430,18 +430,20 @@
                 window.calculateDashboard();
             });
 
-            onValue(getDbRef('orders'), (snapshot) => {
-                ordersDB = [];
-                snapshot.forEach(child => ordersDB.push({ id: child.key, ...child.val() }));
-                // Безопасная сортировка (защита от заказов без даты)
-                ordersDB.sort((a, b) => {
-                    const d1 = new Date(a.date).getTime();
-                    const d2 = new Date(b.date).getTime();
-                    return (isNaN(d2) ? 0 : d2) - (isNaN(d1) ? 0 : d1);
-                });
-                window.renderOrdersTable();
-                window.calculateDashboard();
+           onValue(getDbRef('orders'), (snapshot) => {
+            ordersDB = [];
+            snapshot.forEach(child => ordersDB.push({ id: child.key, ...child.val() }));
+            
+            // Сортировка от новых к старым (безопасная для заказов без даты)
+            ordersDB.sort((a, b) => {
+                const d1 = new Date(a.date).getTime();
+                const d2 = new Date(b.date).getTime();
+                return (isNaN(d2) ? 0 : d2) - (isNaN(d1) ? 0 : d1);
             });
+            
+            window.renderOrdersTable();
+            window.calculateDashboard();
+        });
 
             window.deleteUser = async function(uid) {
                 if(confirm('Точно удалить сотрудника? Он больше не сможет войти.')) {
