@@ -480,6 +480,18 @@
                     tbody.innerHTML += `<tr><td class="py-3 px-5 font-medium">${u.name}<br><span class="text-[11px] font-normal text-zinc-400">Доступ: ${permsTxt || 'Нет'}</span></td><td class="py-3 px-5">${u.email}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="window.openUserModal('${child.key}')" class="text-blue-500 hover:underline mr-3 text-[13px]">Изменить</button><button onclick="window.deleteUser('${child.key}')" class="text-red-500 hover:underline text-[13px]">Удалить</button></td></tr>`;
                 });
             });
+
+            // Чтение остатков ТМЦ в реальном времени
+            onValue(getDbRef('inventory'), (snapshot) => {
+                const inv = snapshot.val() || {};
+                const grid = document.getElementById('inventory-grid');
+                grid.innerHTML = '';
+                const sizes = ["S", "M", "L", "XL", "XS", "Конверт"];
+                sizes.forEach(s => {
+                    const count = inv[s] || 0;
+                    grid.innerHTML += `<div class="p-5 rounded-xl border border-zinc-200 bg-zinc-50 flex flex-col justify-between h-28"><div class="flex justify-between text-zinc-500 mb-2"><span class="text-[13px] font-medium">Размер ${s}</span><i class="ph ph-package text-lg"></i></div><p class="text-3xl font-semibold text-zinc-900">${count} <span class="text-sm font-normal text-zinc-400">шт.</span></p></div>`;
+                });
+            });
         }
 
         window.calculateDashboard = function() {
