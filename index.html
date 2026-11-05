@@ -588,37 +588,49 @@
         // ДОБАВЛЕНИЕ / ИЗМЕНЕНИЕ ЗАКАЗА С ДВОЙНОЙ СИНХРОНИЗАЦИЕЙ
         document.getElementById('order-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            document.getElementById('save-order-btn').textContent = "Синхронизация...";
+            document.getElementById('save-order-btn').textContent = "Сохранение...";
             
             const id = document.getElementById('order-id').value;
             
             if (id) {
-                // ОБНОВЛЯЕМ FIREBASE (Только измененные поля, не трогаем дату и автора)
+                // 1. ОБНОВЛЯЕМ FIREBASE МГНОВЕННО (Только измененные поля, не трогаем дату и автора)
                 const updateData = {
                     barcode: document.getElementById('order-barcode').value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '').trim(),
                     size: document.getElementById('order-size').value,
                     price: parseInt(document.getElementById('order-price').value)
                 };
                 
+                const oldOrder = ordersDB.find(o => String(o.id) === String(id));
+                const searchBarcode = oldOrder ? oldOrder.barcode : updateData.barcode;
+
                 await update(getDbRef(`orders/${id}`), updateData); 
                 
-                // ОБНОВЛЯЕМ GOOGLE SHEETS
-                const gsRes = await syncGoogleSheet('get_all', {});
-                if (gsRes && gsRes.status === 'success') {
-                    // Ищем старый штрихкод заказа, чтобы правильно найти его строку в таблице
-                    const oldOrder = ordersDB.find(o => o.id === id);
-                    const searchBarcode = oldOrder ? oldOrder.barcode : updateData.barcode;
-
-                    const rowIdx = gsRes.data.findIndex(r => String(r[2]) === String(searchBarcode));
-                    if (rowIdx !== -1) {
-                        await syncGoogleSheet('update', { row: rowIdx + 1, col: 1, value: updateData.size });
-                        await syncGoogleSheet('update', { row: rowIdx + 1, col: 2, value: updateData.price });
-                        // Обновляем сам штрихкод в таблице, если вы его изменили
-                        if (searchBarcode !== updateData.barcode) {
-                            await syncGoogleSheet('update', { row: rowIdx + 1, col: 3, value: updateData.barcode });
+                // 2. ЗАКРЫВАЕМ ОКНО СРАЗУ, чтобы не тормозить интерфейс
+                document.getElementById('save-order-btn').textContent = "Сохранить";
+                closeModal('order-modal');
+                
+                // 3. ОБНОВЛЯЕМ GOOGLE SHEETS В ФОНЕ
+                syncGoogleSheet('get_all', {}).then(async (gsRes) => {
+                    if (gsRes && gsRes.status === 'success') {
+                        // Ищем с конца, как делает бот, чтобы найти самый последний (актуальный) заказ
+                        let rowIdx = -1;
+                        for (let i = gsRes.data.length - 1; i >= 0; i--) {
+                            if (gsRes.data[i] && gsRes.data[i].length > 2 && String(gsRes.data[i][2]) === String(searchBarcode)) {
+                                rowIdx = i;
+                                break;
+                            }
+                        }
+                        if (rowIdx !== -1) {
+                            await syncGoogleSheet('update', { row: rowIdx + 1, col: 1, value: updateData.size });
+                            await syncGoogleSheet('update', { row: rowIdx + 1, col: 2, value: updateData.price });
+                            // Обновляем сам штрихкод в таблице, если вы его изменили
+                            if (searchBarcode !== updateData.barcode) {
+                                await syncGoogleSheet('update', { row: rowIdx + 1, col: 3, value: updateData.barcode });
+                            }
                         }
                     }
-                }
+                }).catch(err => console.error(err));
+                
             } else {
                 // НОВЫЙ ЗАКАЗ В FIREBASE (Устанавливаем дату и автора)
                 const data = {
@@ -632,13 +644,13 @@
                 
                 await set(getDbRef(`orders/${Date.now()}`), data);
                 
-                // НОВЫЙ В GOOGLE SHEETS
+                document.getElementById('save-order-btn').textContent = "Сохранить";
+                closeModal('order-modal');
+
+                // НОВЫЙ В GOOGLE SHEETS В ФОНЕ
                 const mskDate = formatCustomDate(getMoscowDateStr());
-                await syncGoogleSheet('append', { data: [data.size, data.price, data.barcode, data.authorName, mskDate, "Добавлено с сайта"] });
+                syncGoogleSheet('append', { data: [data.size, data.price, data.barcode, data.authorName, mskDate, "Добавлено с сайта"] });
             }
-            
-            document.getElementById('save-order-btn').textContent = "Сохранить";
-            closeModal('order-modal');
         });
 
         // УДАЛЕНИЕ С ДВОЙНОЙ СИНХРОНИЗАЦИЕЙ
