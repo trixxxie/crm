@@ -591,28 +591,45 @@
             document.getElementById('save-order-btn').textContent = "Синхронизация...";
             
             const id = document.getElementById('order-id').value;
-            const data = {
-                barcode: document.getElementById('order-barcode').value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '').trim(),
-                size: document.getElementById('order-size').value,
-                price: parseInt(document.getElementById('order-price').value),
-                authorId: currentUser.id, authorName: currentUser.name, date: new Date().toISOString()
-            };
             
             if (id) {
-                // ОБНОВЛЯЕМ FIREBASE
-                await update(getDbRef(`orders/${id}`), data); 
+                // ОБНОВЛЯЕМ FIREBASE (Только измененные поля, не трогаем дату и автора)
+                const updateData = {
+                    barcode: document.getElementById('order-barcode').value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '').trim(),
+                    size: document.getElementById('order-size').value,
+                    price: parseInt(document.getElementById('order-price').value)
+                };
+                
+                await update(getDbRef(`orders/${id}`), updateData); 
                 
                 // ОБНОВЛЯЕМ GOOGLE SHEETS
                 const gsRes = await syncGoogleSheet('get_all', {});
                 if (gsRes && gsRes.status === 'success') {
-                    const rowIdx = gsRes.data.findIndex(r => String(r[2]) === String(data.barcode));
+                    // Ищем старый штрихкод заказа, чтобы правильно найти его строку в таблице
+                    const oldOrder = ordersDB.find(o => o.id === id);
+                    const searchBarcode = oldOrder ? oldOrder.barcode : updateData.barcode;
+
+                    const rowIdx = gsRes.data.findIndex(r => String(r[2]) === String(searchBarcode));
                     if (rowIdx !== -1) {
-                        await syncGoogleSheet('update', { row: rowIdx + 1, col: 1, value: data.size });
-                        await syncGoogleSheet('update', { row: rowIdx + 1, col: 2, value: data.price });
+                        await syncGoogleSheet('update', { row: rowIdx + 1, col: 1, value: updateData.size });
+                        await syncGoogleSheet('update', { row: rowIdx + 1, col: 2, value: updateData.price });
+                        // Обновляем сам штрихкод в таблице, если вы его изменили
+                        if (searchBarcode !== updateData.barcode) {
+                            await syncGoogleSheet('update', { row: rowIdx + 1, col: 3, value: updateData.barcode });
+                        }
                     }
                 }
             } else {
-                // НОВЫЙ В FIREBASE
+                // НОВЫЙ ЗАКАЗ В FIREBASE (Устанавливаем дату и автора)
+                const data = {
+                    barcode: document.getElementById('order-barcode').value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '').trim(),
+                    size: document.getElementById('order-size').value,
+                    price: parseInt(document.getElementById('order-price').value),
+                    authorId: currentUser.id, 
+                    authorName: currentUser.name, 
+                    date: new Date().toISOString()
+                };
+                
                 await set(getDbRef(`orders/${Date.now()}`), data);
                 
                 // НОВЫЙ В GOOGLE SHEETS
