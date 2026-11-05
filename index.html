@@ -168,7 +168,7 @@
                     <div id="tab-users" class="tab-content hidden fade-in">
                         <div class="flex justify-between items-center mb-5">
                             <p class="text-[13px] text-zinc-500">Управление учетными записями и правами доступа</p>
-                            <button onclick="openModal('add-user-modal')" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-md text-[13px] font-medium flex items-center gap-1.5">
+                            <button onclick="window.openUserModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-md text-[13px] font-medium flex items-center gap-1.5">
                                 <i class="ph ph-plus"></i> Создать сотрудника
                             </button>
                         </div>
@@ -227,19 +227,20 @@
     <div id="add-user-modal" class="fixed inset-0 bg-zinc-900/40 z-50 hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white rounded-xl w-full max-w-[400px] overflow-hidden transform scale-95 transition-transform" id="modal-content">
             <div class="px-6 py-4 border-b border-zinc-100 flex justify-between items-center">
-                <h3 class="font-medium text-[15px]">Новый сотрудник</h3>
+                <h3 class="font-medium text-[15px]" id="user-modal-title">Новый сотрудник</h3>
                 <button type="button" onclick="closeModal('add-user-modal')" class="text-zinc-400 hover:text-zinc-600"><i class="ph ph-x text-lg"></i></button>
             </div>
             <form id="new-user-form" class="p-6 space-y-4">
+                <input type="hidden" id="edit-user-uid">
                 <div>
                     <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Имя сотрудника</label>
                     <input type="text" id="new-name" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none">
                 </div>
-                <div>
+                <div id="email-field-wrapper">
                     <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Email (для входа на сайт)</label>
                     <input type="email" id="new-email" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none" placeholder="ivan@gmail.com">
                 </div>
-                <div>
+                <div id="password-field-wrapper">
                     <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Пароль (мин. 6 символов)</label>
                     <input type="text" id="new-password" required minlength="6" class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none">
                 </div>
@@ -335,9 +336,16 @@
 
         let ordersDB = [];
         let pricesDB = {};
+        let usersDB = {};
         let currentUser = null;
 
         const getMoscowDateStr = (date = new Date()) => { return new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Moscow' })); };
+        
+        const formatCustomDate = (dateObj) => {
+            const pad = (n) => n.toString().padStart(2, '0');
+            return `${dateObj.getFullYear()}-${pad(dateObj.getMonth()+1)}-${pad(dateObj.getDate())} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
+        };
+
         const monthPicker = document.getElementById('dash-month-picker');
         monthPicker.value = getMoscowDateStr().toISOString().substring(0, 7);
         monthPicker.addEventListener('change', () => window.calculateDashboard());
@@ -433,14 +441,43 @@
                 }
             };
 
+            window.openUserModal = function(uid = null) {
+                document.getElementById('new-user-form').reset();
+                if (uid) {
+                    const u = usersDB[uid];
+                    document.getElementById('edit-user-uid').value = uid;
+                    document.getElementById('user-modal-title').textContent = 'Редактировать права';
+                    document.getElementById('new-name').value = u.name;
+                    document.getElementById('new-role').value = u.role;
+                    document.getElementById('perm-dash').checked = u.perms?.dash || false;
+                    document.getElementById('perm-orders').checked = u.perms?.orders || false;
+                    document.getElementById('perm-inv').checked = u.perms?.inv || false;
+                    
+                    document.getElementById('email-field-wrapper').classList.add('hidden');
+                    document.getElementById('password-field-wrapper').classList.add('hidden');
+                    document.getElementById('new-email').removeAttribute('required');
+                    document.getElementById('new-password').removeAttribute('required');
+                } else {
+                    document.getElementById('edit-user-uid').value = '';
+                    document.getElementById('user-modal-title').textContent = 'Новый сотрудник';
+                    document.getElementById('email-field-wrapper').classList.remove('hidden');
+                    document.getElementById('password-field-wrapper').classList.remove('hidden');
+                    document.getElementById('new-email').setAttribute('required', 'true');
+                    document.getElementById('new-password').setAttribute('required', 'true');
+                }
+                openModal('add-user-modal');
+            };
+
             onValue(getDbRef('users'), (snapshot) => {
+                usersDB = {};
                 const tbody = document.getElementById('users-table-body');
                 tbody.innerHTML = '';
                 snapshot.forEach(child => {
                     const u = child.val();
+                    usersDB[child.key] = u;
                     const permsTxt = u.role === 'admin' ? 'Все разделы' : 
                         [(u.perms?.dash?'Дашборд':''), (u.perms?.orders?'Заказы':''), (u.perms?.inv?'ТМЦ':'')].filter(Boolean).join(', ');
-                    tbody.innerHTML += `<tr><td class="py-3 px-5 font-medium">${u.name}<br><span class="text-[11px] font-normal text-zinc-400">Доступ: ${permsTxt || 'Нет'}</span></td><td class="py-3 px-5">${u.email}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="window.deleteUser('${child.key}')" class="text-red-500 hover:underline text-[13px]">Удалить</button></td></tr>`;
+                    tbody.innerHTML += `<tr><td class="py-3 px-5 font-medium">${u.name}<br><span class="text-[11px] font-normal text-zinc-400">Доступ: ${permsTxt || 'Нет'}</span></td><td class="py-3 px-5">${u.email}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="window.openUserModal('${child.key}')" class="text-blue-500 hover:underline mr-3 text-[13px]">Изменить</button><button onclick="window.deleteUser('${child.key}')" class="text-red-500 hover:underline text-[13px]">Удалить</button></td></tr>`;
                 });
             });
         }
@@ -535,7 +572,7 @@
                 await set(getDbRef(`orders/${Date.now()}`), data);
                 
                 // НОВЫЙ В GOOGLE SHEETS
-                const mskDate = getMoscowDateStr().toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+                const mskDate = formatCustomDate(getMoscowDateStr());
                 await syncGoogleSheet('append', { data: [data.size, data.price, data.barcode, data.authorName, mskDate, "Добавлено с сайта"] });
             }
             
@@ -568,27 +605,37 @@
             tbody.innerHTML = '';
             ordersDB.forEach(order => {
                 const d = getMoscowDateStr(new Date(order.date));
-                const dateStr = d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                const dateStr = formatCustomDate(d);
                 tbody.innerHTML += `<tr class="hover:bg-zinc-50"><td class="py-3 px-5 font-mono text-zinc-800">${order.barcode}</td><td class="py-3 px-5 text-zinc-700">${order.size}</td><td class="py-3 px-5 font-medium text-zinc-900">${order.price} ₽</td><td class="py-3 px-5 text-zinc-600">${order.authorName}</td><td class="py-3 px-5 text-zinc-400 text-[12px]">${dateStr}</td><td class="py-3 px-5 text-right"><button onclick="window.openOrderModal('${order.id}')" class="text-blue-500 hover:underline mr-3">Изменить</button><button onclick="window.removeOrderById('${order.id}')" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
             });
         }
 
         document.getElementById('new-user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('new-email').value.trim();
-            const pass = document.getElementById('new-password').value.trim();
+            const uid = document.getElementById('edit-user-uid').value;
             const role = document.getElementById('new-role').value;
-            try {
-                const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
-                await set(getDbRef(`users/${cred.user.uid}`), {
-                    name: document.getElementById('new-name').value.trim(),
-                    email: email, role: role,
-                    perms: { dash: document.getElementById('perm-dash').checked, orders: document.getElementById('perm-orders').checked, inv: document.getElementById('perm-inv').checked }
-                });
+            const name = document.getElementById('new-name').value.trim();
+            const perms = { dash: document.getElementById('perm-dash').checked, orders: document.getElementById('perm-orders').checked, inv: document.getElementById('perm-inv').checked };
+
+            if (uid) {
+                // Обновление существующего сотрудника
+                await update(getDbRef(`users/${uid}`), { name, role, perms });
                 closeModal('add-user-modal');
-                e.target.reset();
-                alert('Сотрудник добавлен! Он может использовать этот Email для входа.');
-            } catch (err) { alert('Ошибка! Email уже занят или слабый пароль.'); }
+                alert('Права сотрудника обновлены!');
+            } else {
+                // Создание нового
+                const email = document.getElementById('new-email').value.trim();
+                const pass = document.getElementById('new-password').value.trim();
+                try {
+                    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+                    await set(getDbRef(`users/${cred.user.uid}`), {
+                        name: name, email: email, role: role, perms: perms
+                    });
+                    closeModal('add-user-modal');
+                    e.target.reset();
+                    alert('Сотрудник добавлен! Он может использовать этот Email для входа.');
+                } catch (err) { alert('Ошибка! Email уже занят или слабый пароль.'); }
+            }
         });
     </script>
 </body>
