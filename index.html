@@ -200,7 +200,7 @@
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-zinc-50 text-zinc-500 text-[12px] border-b border-zinc-200">
-                                        <th class="py-3 px-5 font-medium">Имя</th>
+                                        <th class="py-3 px-5 font-medium">Имя / TG ID</th>
                                         <th class="py-3 px-5 font-medium">Email / Тип</th>
                                         <th class="py-3 px-5 font-medium">Роль</th>
                                         <th class="py-3 px-5 font-medium text-right">Действия</th>
@@ -260,14 +260,23 @@
                     <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Имя сотрудника</label>
                     <input type="text" id="new-name" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none">
                 </div>
+                
+                <!-- НОВОЕ ПОЛЕ: TELEGRAM ID -->
+                <div>
+                    <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Telegram ID (для входа в бота)</label>
+                    <input type="text" id="new-tg-id" class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none bg-zinc-50 focus:bg-white" placeholder="Например: 123456789">
+                    <p class="text-[11px] text-zinc-400 mt-1">Оставьте пустым, если сотруднику не нужен бот.</p>
+                </div>
+
                 <div id="email-field-wrapper">
                     <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Email (для входа на сайт)</label>
-                    <input type="email" id="new-email" required class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none" placeholder="ivan@gmail.com">
+                    <input type="email" id="new-email" class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none" placeholder="ivan@gmail.com">
                 </div>
                 <div id="password-field-wrapper">
                     <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Пароль (мин. 6 символов)</label>
-                    <input type="text" id="new-password" required minlength="6" class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none">
+                    <input type="text" id="new-password" minlength="6" class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none">
                 </div>
+                
                 <div>
                     <label class="block text-[12px] font-medium text-zinc-600 mb-1.5">Роль</label>
                     <select id="new-role" class="w-full px-3 py-2 border border-zinc-200 rounded-lg outline-none text-[13px]">
@@ -285,7 +294,7 @@
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="closeModal('add-user-modal')" class="flex-1 px-4 py-2 border border-zinc-200 rounded-lg">Отмена</button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-zinc-900 text-white rounded-lg">Создать</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-zinc-900 text-white rounded-lg">Сохранить</button>
                 </div>
             </form>
         </div>
@@ -450,7 +459,6 @@
                 if (userSnap.exists()) {
                     currentUser = { id: user.uid, email: user.email, ...userSnap.val() };
                 } else {
-                    // ЕСЛИ НЕТ В БАЗЕ — ПОЛНАЯ БЛОКИРОВКА ДОСТУПА
                     window.showToast("Ошибка доступа. Ваша учетная запись не найдена в базе.", "error");
                     window.logout();
                     return; 
@@ -531,14 +539,30 @@
                     document.getElementById('user-modal-title').textContent = 'Редактировать права';
                     document.getElementById('new-name').value = u.name;
                     document.getElementById('new-role').value = u.role;
+                    
+                    // Логика умного извлечения TG ID
+                    let defaultTgId = u.tg_id || '';
+                    if (!defaultTgId && uid.startsWith('tg_')) {
+                        defaultTgId = uid.replace('tg_', '');
+                    }
+                    document.getElementById('new-tg-id').value = defaultTgId;
+                    
                     document.getElementById('perm-dash').checked = u.perms?.dash || false;
                     document.getElementById('perm-orders').checked = u.perms?.orders || false;
                     document.getElementById('perm-inv').checked = u.perms?.inv || false;
                     
-                    document.getElementById('email-field-wrapper').classList.add('hidden');
-                    document.getElementById('password-field-wrapper').classList.add('hidden');
-                    document.getElementById('new-email').removeAttribute('required');
-                    document.getElementById('new-password').removeAttribute('required');
+                    // Если это только TG аккаунт, то email можно задать, чтобы создать полноценный
+                    if (uid.startsWith('tg_')) {
+                        document.getElementById('email-field-wrapper').classList.remove('hidden');
+                        document.getElementById('password-field-wrapper').classList.remove('hidden');
+                        document.getElementById('new-email').removeAttribute('required');
+                        document.getElementById('new-password').removeAttribute('required');
+                    } else {
+                        document.getElementById('email-field-wrapper').classList.add('hidden');
+                        document.getElementById('password-field-wrapper').classList.add('hidden');
+                        document.getElementById('new-email').removeAttribute('required');
+                        document.getElementById('new-password').removeAttribute('required');
+                    }
                 } else {
                     document.getElementById('edit-user-uid').value = '';
                     document.getElementById('user-modal-title').textContent = 'Новый сотрудник';
@@ -562,8 +586,12 @@
                         
                     // Обрабатываем ТГ-аккаунты
                     const emailDisplay = u.email || `<span class="text-zinc-400">Telegram-аккаунт</span>`;
+                    let tgIdDisplay = u.tg_id ? ` (TG: ${u.tg_id})` : '';
+                    if (!u.tg_id && child.key.startsWith('tg_')) {
+                        tgIdDisplay = ` (TG: ${child.key.replace('tg_', '')})`;
+                    }
                     
-                    tbody.innerHTML += `<tr><td class="py-3 px-5 font-medium">${u.name}<br><span class="text-[11px] font-normal text-zinc-400">Доступ: ${permsTxt || 'Нет'}</span></td><td class="py-3 px-5">${emailDisplay}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="window.openUserModal('${child.key}')" class="text-blue-500 hover:underline mr-3 text-[13px]">Изменить</button><button onclick="window.deleteUser('${child.key}')" class="text-red-500 hover:underline text-[13px]">Удалить</button></td></tr>`;
+                    tbody.innerHTML += `<tr><td class="py-3 px-5 font-medium">${u.name} <span class="text-zinc-400 font-normal text-xs">${tgIdDisplay}</span><br><span class="text-[11px] font-normal text-zinc-400">Доступ: ${permsTxt || 'Нет'}</span></td><td class="py-3 px-5">${emailDisplay}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="window.openUserModal('${child.key}')" class="text-blue-500 hover:underline mr-3 text-[13px]">Изменить</button><button onclick="window.deleteUser('${child.key}')" class="text-red-500 hover:underline text-[13px]">Удалить</button></td></tr>`;
                 });
             });
 
@@ -750,23 +778,45 @@
             const uid = document.getElementById('edit-user-uid').value;
             const role = document.getElementById('new-role').value;
             const name = document.getElementById('new-name').value.trim();
+            const tgId = document.getElementById('new-tg-id').value.trim();
             const perms = { dash: document.getElementById('perm-dash').checked, orders: document.getElementById('perm-orders').checked, inv: document.getElementById('perm-inv').checked };
 
             if (uid) {
-                await update(getDbRef(`users/${uid}`), { name, role, perms });
-                closeModal('add-user-modal');
-                window.showToast('Права сотрудника обновлены!');
+                // Если мы редактируем старый TG профиль, и вдруг решили задать ему Email (сделать полноценным)
+                const emailInput = document.getElementById('new-email').value.trim();
+                const passInput = document.getElementById('new-password').value.trim();
+                
+                if (uid.startsWith('tg_') && emailInput && passInput) {
+                    try {
+                        const cred = await createUserWithEmailAndPassword(secondaryAuth, emailInput, passInput);
+                        // Создаем новый полноценный профиль
+                        await set(getDbRef(`users/${cred.user.uid}`), {
+                            name: name, email: emailInput, role: role, perms: perms, tg_id: tgId || uid.replace('tg_', '')
+                        });
+                        // Удаляем старый профиль-обрубок
+                        await remove(getDbRef(`users/${uid}`));
+                        closeModal('add-user-modal');
+                        window.showToast('Telegram-аккаунт успешно превращен в полноценный профиль!');
+                    } catch (err) {
+                        window.showToast('Ошибка! Email уже занят или слабый пароль.', 'error');
+                    }
+                } else {
+                    // Обычное обновление
+                    await update(getDbRef(`users/${uid}`), { name, role, perms, tg_id: tgId });
+                    closeModal('add-user-modal');
+                    window.showToast('Права сотрудника обновлены!');
+                }
             } else {
                 const email = document.getElementById('new-email').value.trim();
                 const pass = document.getElementById('new-password').value.trim();
                 try {
                     const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
                     await set(getDbRef(`users/${cred.user.uid}`), {
-                        name: name, email: email, role: role, perms: perms
+                        name: name, email: email, role: role, perms: perms, tg_id: tgId
                     });
                     closeModal('add-user-modal');
                     e.target.reset();
-                    window.showToast('Сотрудник добавлен! Он может входить по этому Email.');
+                    window.showToast('Сотрудник добавлен! Он может входить на сайт и в бота.');
                 } catch (err) { window.showToast('Ошибка! Email уже занят или слабый пароль.', 'error'); }
             }
         });
