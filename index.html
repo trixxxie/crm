@@ -17,9 +17,33 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         .nav-btn.active { background-color: #e4e4e7; color: #18181b; font-weight: 500; }
         .bg-grid { background-size: 40px 40px; background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px); }
+        
+        /* Анимации для уведомлений (Тостов) */
+        .toast-enter { animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .toast-exit { animation: toastFadeOut 0.2s ease-out forwards; }
+        @keyframes toastSlideIn { from { opacity: 0; transform: translateY(100%) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes toastFadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
     </style>
 </head>
 <body class="bg-white text-zinc-800 h-screen overflow-hidden antialiased text-[14px]">
+
+    <!-- КОНТЕЙНЕР ДЛЯ УВЕДОМЛЕНИЙ -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- КРАСИВОЕ ОКНО ПОДТВЕРЖДЕНИЯ (ВМЕСТО CONFIRM) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-zinc-900/40 z-[70] hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl w-full max-w-[320px] overflow-hidden transform scale-95 transition-transform shadow-xl p-6 text-center">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+                <i class="ph ph-warning-circle text-2xl"></i>
+            </div>
+            <h3 class="font-semibold text-[16px] text-zinc-900 mb-1" id="confirm-title">Вы уверены?</h3>
+            <p class="text-[13px] text-zinc-500 mb-6" id="confirm-message">Это действие нельзя отменить.</p>
+            <div class="flex gap-3">
+                <button type="button" onclick="closeConfirm()" class="flex-1 px-4 py-2 border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg text-[13px] font-medium transition-colors">Отмена</button>
+                <button type="button" id="confirm-action-btn" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[13px] font-medium transition-colors">Подтвердить</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ЭКРАН ЛОГИНА -->
     <div id="login-screen" class="flex h-full w-full bg-zinc-50 bg-grid absolute inset-0 z-40">
@@ -177,7 +201,7 @@
                                 <thead>
                                     <tr class="bg-zinc-50 text-zinc-500 text-[12px] border-b border-zinc-200">
                                         <th class="py-3 px-5 font-medium">Имя</th>
-                                        <th class="py-3 px-5 font-medium">Email</th>
+                                        <th class="py-3 px-5 font-medium">Email / Тип</th>
                                         <th class="py-3 px-5 font-medium">Роль</th>
                                         <th class="py-3 px-5 font-medium text-right">Действия</th>
                                     </tr>
@@ -187,7 +211,7 @@
                         </div>
                     </div>
 
-                    <!-- ЗАКАЗЫ (Двойная база) -->
+                    <!-- ЗАКАЗЫ -->
                     <div id="tab-orders" class="tab-content hidden fade-in">
                         <div class="flex justify-between items-center mb-5">
                              <p class="text-[13px] text-zinc-500">История расходов (Firebase + Google Sheets)</p>
@@ -339,8 +363,47 @@
         let usersDB = {};
         let currentUser = null;
 
+        // ФУНКЦИИ УВЕДОМЛЕНИЙ И ОКОН ПОДТВЕРЖДЕНИЯ (Вместо alert и confirm)
+        window.showToast = function(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const icon = type === 'success' ? '<i class="ph-fill ph-check-circle text-green-500 text-lg"></i>' : '<i class="ph-fill ph-warning-circle text-red-500 text-lg"></i>';
+            const bgColor = type === 'success' ? 'bg-white' : 'bg-red-50';
+            const borderColor = type === 'success' ? 'border-zinc-200' : 'border-red-100';
+            
+            toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border ${borderColor} ${bgColor} toast-enter pointer-events-auto min-w-[280px]`;
+            toast.innerHTML = `${icon}<p class="text-[13px] font-medium text-zinc-800">${message}</p>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.replace('toast-enter', 'toast-exit');
+                setTimeout(() => toast.remove(), 200);
+            }, 3000);
+        }
+
+        let confirmCallback = null;
+        window.showConfirm = function(title, message, callback) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            confirmCallback = callback;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+        
+        window.closeConfirm = function() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            confirmCallback = null;
+        }
+
+        document.getElementById('confirm-action-btn').addEventListener('click', () => {
+            if (confirmCallback) confirmCallback();
+            closeConfirm();
+        });
+
+
         const getMoscowDateStr = (date = new Date()) => { 
-            if (isNaN(date)) date = new Date(); // Защита от старых заказов без даты, чтобы скрипт не падал
+            if (isNaN(date)) date = new Date(); 
             return new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Moscow' })); 
         };
         
@@ -369,7 +432,6 @@
             document.getElementById('current-time').textContent = getMoscowDateStr().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
         }, 1000);
 
-        // ФУНКЦИЯ ДВОЙНОЙ ОТПРАВКИ (GSheets)
         async function syncGoogleSheet(action, payload) {
             if (!GOOGLE_WEBAPP_URL || GOOGLE_WEBAPP_URL.includes("ВСТАВЬТЕ_ССЫЛКУ")) return;
             try {
@@ -380,16 +442,18 @@
             } catch (e) { console.error("Google Sheets Sync Error:", e); return null; }
         }
 
-        // АВТОРИЗАЦИЯ
+        // --- СТРОГАЯ АВТОРИЗАЦИЯ ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userSnap = await get(getDbRef(`users/${user.uid}`));
+                
                 if (userSnap.exists()) {
                     currentUser = { id: user.uid, email: user.email, ...userSnap.val() };
                 } else {
-                    const newAdmin = { name: 'Главный Админ', email: user.email, role: 'admin', perms: {dash: true, orders: true, inv: true} };
-                    await set(getDbRef(`users/${user.uid}`), newAdmin);
-                    currentUser = { id: user.uid, ...newAdmin };
+                    // ЕСЛИ НЕТ В БАЗЕ — ПОЛНАЯ БЛОКИРОВКА ДОСТУПА
+                    window.showToast("Ошибка доступа. Ваша учетная запись не найдена в базе.", "error");
+                    window.logout();
+                    return; 
                 }
                 
                 document.getElementById('user-name-display').textContent = currentUser.name;
@@ -421,7 +485,7 @@
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try { await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value); } 
-            catch (err) { alert('Неверный Email или пароль'); }
+            catch (err) { window.showToast('Неверный Email или пароль', 'error'); }
         });
 
         function setupRealtimeListeners() {
@@ -434,7 +498,6 @@
                 ordersDB = [];
                 const data = snapshot.val();
                 
-                // Исправление №1 и №2: Безопасный перебор объектов, чтобы всегда грузились все заказы
                 if (data) {
                     Object.keys(data).forEach(key => {
                         if (data[key]) {
@@ -443,7 +506,6 @@
                     });
                 }
 
-                // Сортировка списка от новых к старым
                 ordersDB.sort((a, b) => {
                     const d1 = new Date(a.date).getTime();
                     const d2 = new Date(b.date).getTime();
@@ -455,9 +517,10 @@
             });
 
             window.deleteUser = async function(uid) {
-                if(confirm('Точно удалить сотрудника? Он больше не сможет войти.')) {
+                window.showConfirm('Удаление сотрудника', 'Точно удалить сотрудника? Он больше не сможет войти в систему.', async () => {
                     await remove(getDbRef(`users/${uid}`));
-                }
+                    window.showToast('Сотрудник успешно удален');
+                });
             };
 
             window.openUserModal = function(uid = null) {
@@ -496,11 +559,14 @@
                     usersDB[child.key] = u;
                     const permsTxt = u.role === 'admin' ? 'Все разделы' : 
                         [(u.perms?.dash?'Дашборд':''), (u.perms?.orders?'Заказы':''), (u.perms?.inv?'ТМЦ':'')].filter(Boolean).join(', ');
-                    tbody.innerHTML += `<tr><td class="py-3 px-5 font-medium">${u.name}<br><span class="text-[11px] font-normal text-zinc-400">Доступ: ${permsTxt || 'Нет'}</span></td><td class="py-3 px-5">${u.email}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="window.openUserModal('${child.key}')" class="text-blue-500 hover:underline mr-3 text-[13px]">Изменить</button><button onclick="window.deleteUser('${child.key}')" class="text-red-500 hover:underline text-[13px]">Удалить</button></td></tr>`;
+                        
+                    // Обрабатываем ТГ-аккаунты
+                    const emailDisplay = u.email || `<span class="text-zinc-400">Telegram-аккаунт</span>`;
+                    
+                    tbody.innerHTML += `<tr><td class="py-3 px-5 font-medium">${u.name}<br><span class="text-[11px] font-normal text-zinc-400">Доступ: ${permsTxt || 'Нет'}</span></td><td class="py-3 px-5">${emailDisplay}</td><td class="py-3 px-5">${u.role}</td><td class="py-3 px-5 text-right"><button onclick="window.openUserModal('${child.key}')" class="text-blue-500 hover:underline mr-3 text-[13px]">Изменить</button><button onclick="window.deleteUser('${child.key}')" class="text-red-500 hover:underline text-[13px]">Удалить</button></td></tr>`;
                 });
             });
 
-            // Чтение остатков ТМЦ в реальном времени
             onValue(getDbRef('inventory'), (snapshot) => {
                 const inv = snapshot.val() || {};
                 const grid = document.getElementById('inventory-grid');
@@ -535,7 +601,6 @@
                 
                 totCount++; totRev += price; totCost += cost;
                 
-                // Проверка на корректность даты (защита от старых форматов)
                 const origDate = new Date(d.date);
                 if (!isNaN(origDate.getTime())) {
                     const orderDateMsk = getMoscowDateStr(origDate).toISOString();
@@ -585,125 +650,97 @@
             openModal('order-modal');
         }
 
-        // ДОБАВЛЕНИЕ / ИЗМЕНЕНИЕ ЗАКАЗА С ДВОЙНОЙ СИНХРОНИЗАЦИЕЙ
         document.getElementById('order-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            document.getElementById('save-order-btn').textContent = "Сохранение...";
+            document.getElementById('save-order-btn').textContent = "Синхронизация...";
             
             const id = document.getElementById('order-id').value;
+            const barcodeVal = document.getElementById('order-barcode').value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '').trim();
+            const sizeVal = document.getElementById('order-size').value;
+            const priceVal = parseInt(document.getElementById('order-price').value);
             
             if (id) {
-                // 1. ОБНОВЛЯЕМ FIREBASE МГНОВЕННО (Только измененные поля, не трогаем дату и автора)
-                const updateData = {
-                    barcode: document.getElementById('order-barcode').value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '').trim(),
-                    size: document.getElementById('order-size').value,
-                    price: parseInt(document.getElementById('order-price').value)
-                };
+                await update(getDbRef(`orders/${id}`), { barcode: barcodeVal, size: sizeVal, price: priceVal }); 
+                window.showToast('Заказ обновлен');
                 
-                const oldOrder = ordersDB.find(o => String(o.id) === String(id));
-                const searchBarcode = oldOrder ? oldOrder.barcode : updateData.barcode;
-
-                await update(getDbRef(`orders/${id}`), updateData); 
-                
-                // 2. ЗАКРЫВАЕМ ОКНО СРАЗУ, чтобы не тормозить интерфейс
-                document.getElementById('save-order-btn').textContent = "Сохранить";
-                closeModal('order-modal');
-                
-                // 3. ОБНОВЛЯЕМ GOOGLE SHEETS В ФОНЕ
-                syncGoogleSheet('get_all', {}).then(async (gsRes) => {
+                syncGoogleSheet('get_all', {}).then(gsRes => {
                     if (gsRes && gsRes.status === 'success') {
-                        // Ищем с конца, как делает бот, чтобы найти самый последний (актуальный) заказ
-                        let rowIdx = -1;
-                        for (let i = gsRes.data.length - 1; i >= 0; i--) {
-                            // Ищем сначала по уникальному ID (7-я колонка), затем по штрихкоду (для старых заказов)
-                            if (gsRes.data[i] && gsRes.data[i].length > 6 && String(gsRes.data[i][6]) === String(id)) {
-                                rowIdx = i;
+                        const records = gsRes.data || [];
+                        for (let i = records.length - 1; i >= 0; i--) {
+                            if (records[i].length > 6 && String(records[i][6]) === String(id)) {
+                                syncGoogleSheet('update', { row: i + 1, col: 1, value: sizeVal });
+                                syncGoogleSheet('update', { row: i + 1, col: 2, value: priceVal });
+                                syncGoogleSheet('update', { row: i + 1, col: 3, value: barcodeVal });
                                 break;
-                            } else if (gsRes.data[i] && gsRes.data[i].length > 2 && String(gsRes.data[i][2]) === String(searchBarcode) && gsRes.data[i].length <= 6) {
-                                rowIdx = i;
+                            } else if (records[i].length > 2 && String(records[i][2]) === String(barcodeVal) && records[i].length <= 6) {
+                                syncGoogleSheet('update', { row: i + 1, col: 1, value: sizeVal });
+                                syncGoogleSheet('update', { row: i + 1, col: 2, value: priceVal });
+                                syncGoogleSheet('update', { row: i + 1, col: 3, value: barcodeVal });
                                 break;
-                            }
-                        }
-                        if (rowIdx !== -1) {
-                            await syncGoogleSheet('update', { row: rowIdx + 1, col: 1, value: updateData.size });
-                            await syncGoogleSheet('update', { row: rowIdx + 1, col: 2, value: updateData.price });
-                            // Обновляем сам штрихкод в таблице, если вы его изменили
-                            if (searchBarcode !== updateData.barcode) {
-                                await syncGoogleSheet('update', { row: rowIdx + 1, col: 3, value: updateData.barcode });
                             }
                         }
                     }
-                }).catch(err => console.error(err));
-                
+                });
             } else {
-                // НОВЫЙ ЗАКАЗ В FIREBASE (Устанавливаем дату и автора)
-                const newId = String(Date.now());
-                const data = {
-                    barcode: document.getElementById('order-barcode').value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '').trim(),
-                    size: document.getElementById('order-size').value,
-                    price: parseInt(document.getElementById('order-price').value),
+                const docId = Date.now().toString();
+                const mskDate = formatCustomDate(getMoscowDateStr());
+                
+                await set(getDbRef(`orders/${docId}`), {
+                    barcode: barcodeVal,
+                    size: sizeVal,
+                    price: priceVal,
                     authorId: currentUser.id, 
                     authorName: currentUser.name, 
-                    date: new Date().toISOString()
-                };
+                    date: getMoscowDateStr().toISOString()
+                });
                 
-                await set(getDbRef(`orders/${newId}`), data);
-                
-                document.getElementById('save-order-btn').textContent = "Сохранить";
-                closeModal('order-modal');
-
-                // НОВЫЙ В GOOGLE SHEETS В ФОНЕ (Передаем ID 7-й колонкой)
-                const mskDate = formatCustomDate(getMoscowDateStr());
-                syncGoogleSheet('append', { data: [data.size, data.price, data.barcode, data.authorName, mskDate, "Добавлено с сайта", newId] });
+                syncGoogleSheet('append', { data: [sizeVal, priceVal, barcodeVal, currentUser.name, mskDate, "Сайт", docId] });
+                window.showToast('Заказ добавлен');
             }
+            
+            document.getElementById('save-order-btn').textContent = "Сохранить";
+            closeModal('order-modal');
         });
 
-        // УДАЛЕНИЕ С ДВОЙНОЙ СИНХРОНИЗАЦИЕЙ
         window.removeOrderById = async function(id) { 
-            if (confirm('Удалить заказ из базы?')) {
+            window.showConfirm('Удаление заказа', 'Удалить этот заказ из базы навсегда?', async () => {
                 const order = ordersDB.find(o => o.id === id);
                 if (order) {
-                    // УДАЛЯЕМ ИЗ FIREBASE
                     await remove(getDbRef(`orders/${id}`)); 
+                    window.showToast('Заказ удален');
                     
-                    // УДАЛЯЕМ ИЗ GOOGLE SHEETS
-                    const gsRes = await syncGoogleSheet('get_all', {});
-                    if (gsRes && gsRes.status === 'success') {
-                        let rowIdx = -1;
-                        for (let i = gsRes.data.length - 1; i >= 0; i--) {
-                            // Ищем сначала по ID (для новых заказов), затем по штрихкоду (для старых)
-                            if (gsRes.data[i] && gsRes.data[i].length > 6 && String(gsRes.data[i][6]) === String(id)) {
-                                rowIdx = i;
-                                break;
-                            } else if (gsRes.data[i] && gsRes.data[i].length > 2 && String(gsRes.data[i][2]) === String(order.barcode) && gsRes.data[i].length <= 6) {
-                                rowIdx = i;
-                                break;
+                    syncGoogleSheet('get_all', {}).then(gsRes => {
+                        if (gsRes && gsRes.status === 'success') {
+                            const records = gsRes.data || [];
+                            for (let i = records.length - 1; i >= 0; i--) {
+                                if (records[i].length > 6 && String(records[i][6]) === String(id)) {
+                                    syncGoogleSheet('delete', { row: i + 1 });
+                                    break;
+                                } else if (records[i].length > 2 && String(records[i][2]) === String(order.barcode) && records[i].length <= 6) {
+                                    syncGoogleSheet('delete', { row: i + 1 });
+                                    break;
+                                }
                             }
                         }
-                        if (rowIdx !== -1) {
-                            await syncGoogleSheet('delete', { row: rowIdx + 1 });
-                        }
-                    }
+                    });
                 }
-            }
+            });
         };
 
         window.renderOrdersTable = function() {
             const tbody = document.getElementById('orders-table-body');
             tbody.innerHTML = '';
             ordersDB.forEach(order => {
-                // Выводим "Нет даты" если дата битая
                 const origDate = new Date(order.date);
                 let dateStr = "Нет даты";
                 if (!isNaN(origDate.getTime())) {
                     dateStr = formatCustomDate(getMoscowDateStr(origDate));
                 }
                 
-                tbody.innerHTML += `<tr class="hover:bg-zinc-50"><td class="py-3 px-5 font-mono text-zinc-800">${order.barcode}<br><span class="text-[10px] text-zinc-400">ID: ${order.id}</span></td><td class="py-3 px-5 text-zinc-700">${order.size}</td><td class="py-3 px-5 font-medium text-zinc-900">${order.price} ₽</td><td class="py-3 px-5 text-zinc-600">${order.authorName}</td><td class="py-3 px-5 text-zinc-400 text-[12px]">${dateStr}</td><td class="py-3 px-5 text-right"><button onclick="window.openOrderModal('${order.id}')" class="text-blue-500 hover:underline mr-3">Изменить</button><button onclick="window.removeOrderById('${order.id}')" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
+                tbody.innerHTML += `<tr class="hover:bg-zinc-50"><td class="py-3 px-5 font-mono text-zinc-800">${order.barcode}</td><td class="py-3 px-5 text-zinc-700">${order.size}</td><td class="py-3 px-5 font-medium text-zinc-900">${order.price} ₽</td><td class="py-3 px-5 text-zinc-600">${order.authorName}</td><td class="py-3 px-5 text-zinc-400 text-[12px]">${dateStr}</td><td class="py-3 px-5 text-right"><button onclick="window.openOrderModal('${order.id}')" class="text-blue-500 hover:underline mr-3">Изменить</button><button onclick="window.removeOrderById('${order.id}')" class="text-red-500 hover:underline">Удалить</button></td></tr>`;
             });
         }
 
-        // Блокировка ввода любых букв в штрихкод (только цифры)
         document.getElementById('order-barcode').addEventListener('input', function(e) {
             this.value = this.value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '');
         });
@@ -716,12 +753,10 @@
             const perms = { dash: document.getElementById('perm-dash').checked, orders: document.getElementById('perm-orders').checked, inv: document.getElementById('perm-inv').checked };
 
             if (uid) {
-                // Обновление существующего сотрудника
                 await update(getDbRef(`users/${uid}`), { name, role, perms });
                 closeModal('add-user-modal');
-                alert('Права сотрудника обновлены!');
+                window.showToast('Права сотрудника обновлены!');
             } else {
-                // Создание нового
                 const email = document.getElementById('new-email').value.trim();
                 const pass = document.getElementById('new-password').value.trim();
                 try {
@@ -731,8 +766,8 @@
                     });
                     closeModal('add-user-modal');
                     e.target.reset();
-                    alert('Сотрудник добавлен! Он может использовать этот Email для входа.');
-                } catch (err) { alert('Ошибка! Email уже занят или слабый пароль.'); }
+                    window.showToast('Сотрудник добавлен! Он может входить по этому Email.');
+                } catch (err) { window.showToast('Ошибка! Email уже занят или слабый пароль.', 'error'); }
             }
         });
     </script>
